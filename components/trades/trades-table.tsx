@@ -283,20 +283,36 @@ export function TradesTable({ trades, onOpenNewTrade, onOpenImportModal }: Trade
                         </span>
                       </td>
 
-                      {/* Net PnL */}
+                      {/* Net PnL & % Gain/Loss */}
                       <td className="p-4 whitespace-nowrap">
-                        <div
-                          className={cn(
-                            "font-extrabold text-sm flex items-center gap-1",
-                            trade.netPnL > 0 ? "text-emerald-400" : trade.netPnL < 0 ? "text-rose-400" : "text-slate-400"
-                          )}
-                        >
-                          {trade.netPnL > 0 ? (
-                            <TrendingUp className="h-3.5 w-3.5" />
-                          ) : trade.netPnL < 0 ? (
-                            <TrendingDown className="h-3.5 w-3.5" />
-                          ) : null}
-                          {formatSignedCurrency(trade.netPnL)}
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className={cn(
+                              "font-extrabold text-sm flex items-center gap-1",
+                              trade.netPnL > 0 ? "text-emerald-400" : trade.netPnL < 0 ? "text-rose-400" : "text-slate-400"
+                            )}
+                          >
+                            {trade.netPnL > 0 ? (
+                              <TrendingUp className="h-3.5 w-3.5" />
+                            ) : trade.netPnL < 0 ? (
+                              <TrendingDown className="h-3.5 w-3.5" />
+                            ) : null}
+                            {formatSignedCurrency(trade.netPnL)}
+                          </div>
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border",
+                              trade.netPnL > 0
+                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                : trade.netPnL < 0
+                                ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                                : "bg-slate-800 text-slate-400 border-slate-700"
+                            )}
+                          >
+                            {trade.netPnL >= 0
+                              ? `+${((trade.netPnL / 10000) * 100).toFixed(2)}%`
+                              : `${((trade.netPnL / 10000) * 100).toFixed(2)}%`}
+                          </span>
                         </div>
                       </td>
 

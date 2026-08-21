@@ -2,7 +2,7 @@ import { prisma } from "./prisma";
 import { SampleTrade } from "./sample-data";
 import { calculatePips, calculateRiskReward, detectTradingSession } from "./forex-utils";
 
-// Clean memory storage
+// Clean memory storage fallback
 let inMemoryTrades: SampleTrade[] = [];
 
 async function getOrCreateDefaultUserId(): Promise<string> {
@@ -40,7 +40,7 @@ export async function getAccounts(userId?: string) {
       }));
     }
 
-    // If database is empty, auto-create 1 clean default Demo account linked to user with broker "-"
+    // If database is empty for this user, auto-create 1 clean default Demo account linked to user with broker "-"
     const ownerId = userId || (await getOrCreateDefaultUserId());
     const newDefault = await prisma.tradingAccount.create({
       data: {
@@ -86,10 +86,30 @@ export async function getAccounts(userId?: string) {
   ];
 }
 
-export async function getAllTrades(accountId?: string): Promise<SampleTrade[]> {
+export async function getAllTrades(accountId?: string, userId?: string): Promise<SampleTrade[]> {
   try {
     const whereClause: any = {};
-    if (accountId && accountId !== "all") {
+
+    if (userId) {
+      const userAccounts = await prisma.tradingAccount.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      const userAccountIds = userAccounts.map((a) => a.id);
+
+      if (userAccountIds.length === 0) {
+        return [];
+      }
+
+      if (accountId && accountId !== "all") {
+        if (!userAccountIds.includes(accountId)) {
+          return []; // Account does not belong to this user
+        }
+        whereClause.accountId = accountId;
+      } else {
+        whereClause.accountId = { in: userAccountIds };
+      }
+    } else if (accountId && accountId !== "all") {
       whereClause.accountId = accountId;
     }
 
@@ -101,7 +121,6 @@ export async function getAllTrades(accountId?: string): Promise<SampleTrade[]> {
       orderBy: { openTime: "desc" },
     });
 
-    // Return exact database rows (clean [] if 0 trades exist)
     return dbTrades.map((t) => ({
       id: t.id,
       accountId: t.accountId,
@@ -136,25 +155,28 @@ export async function getAllTrades(accountId?: string): Promise<SampleTrade[]> {
   return inMemoryTrades;
 }
 
-export async function createNewTrade(tradeData: {
-  accountId: string;
-  pair: string;
-  direction: "BUY" | "SELL";
-  lotSize: number;
-  entryPrice: number;
-  exitPrice?: number;
-  stopLoss?: number;
-  takeProfit?: number;
-  openTime?: string;
-  closeTime?: string;
-  strategyName?: string;
-  emotionTag?: string;
-  mistakeTag?: string;
-  notes?: string;
-  isNewsTrade?: boolean;
-  commission?: number;
-  swap?: number;
-}) {
+export async function createNewTrade(
+  tradeData: {
+    accountId: string;
+    pair: string;
+    direction: "BUY" | "SELL";
+    lotSize: number;
+    entryPrice: number;
+    exitPrice?: number;
+    stopLoss?: number;
+    takeProfit?: number;
+    openTime?: string;
+    closeTime?: string;
+    strategyName?: string;
+    emotionTag?: string;
+    mistakeTag?: string;
+    notes?: string;
+    isNewsTrade?: boolean;
+    commission?: number;
+    swap?: number;
+  },
+  userId?: string
+) {
   const openTime = tradeData.openTime ? new Date(tradeData.openTime) : new Date();
   const closeTime = tradeData.closeTime ? new Date(tradeData.closeTime) : new Date();
   const exitPrice = tradeData.exitPrice || tradeData.entryPrice;
@@ -179,16 +201,29 @@ export async function createNewTrade(tradeData: {
   if (netPnL > 0) status = "WIN";
   else if (netPnL < 0) status = "LOSS";
 
-  // Ensure account exists in DB
+  // Ensure account belongs to user in DB
   let targetAccountId = tradeData.accountId;
   try {
-    let account = await prisma.tradingAccount.findUnique({
-      where: { id: targetAccountId },
-    });
+    let account = null;
+
+    if (targetAccountId && targetAccountId !== "all" && targetAccountId !== "demo-account-1") {
+      account = await prisma.tradingAccount.findFirst({
+        where: {
+          id: targetAccountId,
+          ...(userId ? { userId } : {}),
+        },
+      });
+    }
+
+    // If account was not found or was invalid, fallback to user's first account
     if (!account) {
-      account = await prisma.tradingAccount.findFirst();
+      account = await prisma.tradingAccount.findFirst({
+        where: userId ? { userId } : undefined,
+        orderBy: { createdAt: "asc" },
+      });
+
       if (!account) {
-        const ownerId = await getOrCreateDefaultUserId();
+        const ownerId = userId || (await getOrCreateDefaultUserId());
         account = await prisma.tradingAccount.create({
           data: {
             userId: ownerId,
@@ -201,8 +236,9 @@ export async function createNewTrade(tradeData: {
           },
         });
       }
-      targetAccountId = account.id;
     }
+
+    targetAccountId = account.id;
 
     const created = await prisma.trade.create({
       data: {

@@ -8,16 +8,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { POPULAR_PAIRS, EMOTION_TAGS, MISTAKE_TAGS, DEFAULT_STRATEGIES, calculatePips, calculateRiskReward } from "@/lib/forex-utils";
 import { formatSignedCurrency } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Sparkles, Check, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Sparkles, Check, AlertTriangle, Layers } from "lucide-react";
 
 interface TradeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaveTrade: (tradeData: any) => void;
   selectedAccountId?: string;
+  accounts?: Array<{ id: string; name: string; broker?: string | null }>;
 }
 
-export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId }: TradeFormModalProps) {
+export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId, accounts = [] }: TradeFormModalProps) {
+  const [targetAccountId, setTargetAccountId] = React.useState<string>("");
   const [pair, setPair] = React.useState<string>("XAUUSD");
   const [direction, setDirection] = React.useState<"BUY" | "SELL">("BUY");
   const [lotSize, setLotSize] = React.useState<string>("0.5");
@@ -30,6 +32,15 @@ export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId
   const [mistake, setMistake] = React.useState<string>("");
   const [isNewsTrade, setIsNewsTrade] = React.useState<boolean>(false);
   const [notes, setNotes] = React.useState<string>("");
+
+  // Sync initial account selection
+  React.useEffect(() => {
+    if (selectedAccountId && selectedAccountId !== "all") {
+      setTargetAccountId(selectedAccountId);
+    } else if (accounts.length > 0) {
+      setTargetAccountId(accounts[0].id);
+    }
+  }, [selectedAccountId, accounts, isOpen]);
 
   // Live Calculated metrics
   const calculatedMetrics = React.useMemo(() => {
@@ -54,8 +65,10 @@ export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId
     e.preventDefault();
     if (!pair || !entryPrice || !lotSize) return;
 
+    const finalAccountId = targetAccountId || accounts[0]?.id || selectedAccountId;
+
     onSaveTrade({
-      accountId: selectedAccountId === "all" ? "demo-account-1" : selectedAccountId,
+      accountId: finalAccountId,
       pair: pair.toUpperCase(),
       direction,
       lotSize: parseFloat(lotSize) || 0.1,
@@ -113,6 +126,27 @@ export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId
           </div>
         </div>
 
+        {/* Account Selector Field */}
+        {accounts.length > 1 && (
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1.5 flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5 text-emerald-400" />
+              <span>Simpan ke Akun Trading</span>
+            </label>
+            <select
+              value={targetAccountId}
+              onChange={(e) => setTargetAccountId(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+            >
+              {accounts.map((acc) => (
+                <option key={acc.id} value={acc.id}>
+                  {acc.name} ({acc.broker || "Forex"})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Pair & Direction Toggle */}
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -142,44 +176,47 @@ export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">Posisi (Direction)</label>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              <button
+            <label className="text-xs font-semibold text-slate-300 block mb-1.5">Arah Posisi</label>
+            <div className="grid grid-cols-2 gap-2 h-10">
+              <Button
                 type="button"
+                variant={direction === "BUY" ? "default" : "outline"}
                 onClick={() => setDirection("BUY")}
-                className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`h-full ${
                   direction === "BUY"
-                    ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
-                    : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                    ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20"
+                    : "border-slate-700 hover:border-slate-600 text-slate-300"
                 }`}
               >
                 BUY (Long)
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant={direction === "SELL" ? "destructive" : "outline"}
                 onClick={() => setDirection("SELL")}
-                className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`h-full ${
                   direction === "SELL"
-                    ? "bg-rose-500 text-white shadow-md shadow-rose-500/20"
-                    : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                    ? "bg-rose-500 hover:bg-rose-400 text-white font-bold shadow-md shadow-rose-500/20"
+                    : "border-slate-700 hover:border-slate-600 text-slate-300"
                 }`}
               >
                 SELL (Short)
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Pricing Inputs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {/* Lot Size, Entry Price, Exit Price */}
+        <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="text-xs font-semibold text-slate-300 block mb-1">Lot Size</label>
             <Input
               type="number"
               step="0.01"
+              min="0.01"
               value={lotSize}
               onChange={(e) => setLotSize(e.target.value)}
-              placeholder="0.5"
+              placeholder="0.10"
               required
             />
           </div>
@@ -202,10 +239,17 @@ export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId
               value={exitPrice}
               onChange={(e) => setExitPrice(e.target.value)}
               placeholder="2492.50"
+              required
             />
           </div>
+        </div>
+
+        {/* Stop Loss & Take Profit */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Stop Loss (SL)</label>
+            <label className="text-xs font-semibold text-slate-300 block mb-1 text-rose-400">
+              Stop Loss (SL)
+            </label>
             <Input
               type="number"
               step="any"
@@ -214,90 +258,112 @@ export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId
               placeholder="2474.00"
             />
           </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1 text-emerald-400">
+              Take Profit (TP)
+            </label>
+            <Input
+              type="number"
+              step="any"
+              value={takeProfit}
+              onChange={(e) => setTakeProfit(e.target.value)}
+              placeholder="2495.00"
+            />
+          </div>
         </div>
 
-        {/* Strategy & Psychology Tags */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">Strategi / Setup</label>
-            <select
-              value={strategy}
-              onChange={(e) => setStrategy(e.target.value)}
-              className="w-full h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-            >
-              {DEFAULT_STRATEGIES.map((s) => (
-                <option key={s.name} value={s.name}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+        {/* Strategy Selection */}
+        <div>
+          <label className="text-xs font-semibold text-slate-300 block mb-1">Setup / Strategi</label>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {DEFAULT_STRATEGIES.map((s) => (
+              <button
+                key={s.name}
+                type="button"
+                onClick={() => setStrategy(s.name)}
+                className={`text-[10px] px-2.5 py-1 rounded-lg border transition-colors ${
+                  strategy === s.name
+                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 font-semibold"
+                    : "border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                }`}
+              >
+                {s.name}
+              </button>
+            ))}
           </div>
+          <Input
+            value={strategy}
+            onChange={(e) => setStrategy(e.target.value)}
+            placeholder="Ketik strategi kustom kamu..."
+          />
+        </div>
 
+        {/* Psychology: Emotion Tag & Mistake Tag */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">Kondisi Emosi (Psikologi)</label>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Kondisi Emosi</label>
             <select
               value={emotion}
               onChange={(e) => setEmotion(e.target.value)}
-              className="w-full h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              className="w-full h-10 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-emerald-500/50"
             >
-              {EMOTION_TAGS.map((em) => (
-                <option key={em.label} value={em.label}>
-                  {em.label}
+              {EMOTION_TAGS.map((tag) => (
+                <option key={tag.label} value={tag.label}>
+                  {tag.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">Evaluasi Kesalahan</label>
+            <select
+              value={mistake}
+              onChange={(e) => setMistake(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+            >
+              <option value="">Tidak Ada (Disiplin)</option>
+              {MISTAKE_TAGS.map((tag) => (
+                <option key={tag} value={tag}>
+                  {tag}
                 </option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Mistake Tagging & News */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">Tag Kesalahan (Jika ada)</label>
-            <select
-              value={mistake}
-              onChange={(e) => setMistake(e.target.value)}
-              className="w-full h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50"
-            >
-              <option value="">Tidak ada (Disiplin)</option>
-              {MISTAKE_TAGS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 pt-6">
-            <input
-              type="checkbox"
-              id="newsTrade"
-              checked={isNewsTrade}
-              onChange={(e) => setIsNewsTrade(e.target.checked)}
-              className="h-4 w-4 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500"
-            />
-            <label htmlFor="newsTrade" className="text-xs font-medium text-slate-300 cursor-pointer">
-              Trading saat High Impact News (CPI / NFP / FOMC)
-            </label>
-          </div>
+        {/* News Trade Checkbox */}
+        <div className="flex items-center gap-2 pt-1">
+          <input
+            type="checkbox"
+            id="isNewsTrade"
+            checked={isNewsTrade}
+            onChange={(e) => setIsNewsTrade(e.target.checked)}
+            className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 cursor-pointer"
+          />
+          <label htmlFor="isNewsTrade" className="text-xs text-slate-300 cursor-pointer">
+            Posisi ini dieksekusi saat ada rilis Berita Ekonomi / High Impact News
+          </label>
         </div>
 
         {/* Notes */}
         <div>
-          <label className="text-xs font-semibold text-slate-300 block mb-1">Catatan & Evaluasi Trade</label>
+          <label className="text-xs font-semibold text-slate-300 block mb-1">Catatan Tambahan</label>
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Alasan entry, konfirmasi timeframe besar, atau evaluasi penutupan..."
+            placeholder="Tulis alasan entry, konfirmasi timeframe besar, atau catatan evaluasi..."
             rows={2}
+            className="resize-none"
           />
         </div>
 
-        <DialogFooter>
-          <Button type="button" variant="ghost" onClick={onClose}>
+        <DialogFooter className="pt-2">
+          <Button type="button" variant="outline" onClick={onClose} className="text-xs">
             Batal
           </Button>
-          <Button type="submit" variant="default" className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">
-            Simpan ke Jurnal
+          <Button type="submit" className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">
+            Simpan Catatan Trade
           </Button>
         </DialogFooter>
       </form>

@@ -53,13 +53,17 @@ const MarketSessionsClock = dynamic(
 );
 
 export default function DashboardPage() {
-  const { trades, openNewTradeModal, openImportModal, openCuanCardModal } = useAppShell();
+  const { trades, accounts, selectedAccountId, openNewTradeModal, openImportModal, openCuanCardModal } = useAppShell();
 
   const recentTrades = React.useMemo(() => {
     return [...trades]
       .sort((a, b) => new Date(b.openTime).getTime() - new Date(a.openTime).getTime())
       .slice(0, 5);
   }, [trades]);
+
+  // Determine base initial balance for percentage calculations
+  const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
+  const initialBaseBalance = activeAccount?.initialBalance || activeAccount?.currentBalance || 10000;
 
   return (
     <div className="space-y-6">
@@ -120,8 +124,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <KPISummaryCards trades={trades} />
+      {/* KPI Cards (with % gain calculation) */}
+      <KPISummaryCards trades={trades} initialBalance={initialBaseBalance} />
 
       {/* Main Grid: Calendar & Equity Curve */}
       <div className="space-y-6">
@@ -132,7 +136,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Equity Curve (2 Cols) */}
           <div className="lg:col-span-2">
-            <EquityCurveChart trades={trades} initialBalance={5000} />
+            <EquityCurveChart trades={trades} initialBalance={initialBaseBalance} />
           </div>
 
           {/* Recent Trades Widget (1 Col) */}
@@ -157,6 +161,9 @@ export default function DashboardPage() {
                   recentTrades.map((trade) => {
                     const isWin = trade.netPnL > 0;
                     const isLoss = trade.netPnL < 0;
+                    const targetAccount = accounts.find((a) => a.id === trade.accountId) || activeAccount;
+                    const baseBalance = targetAccount?.initialBalance || targetAccount?.currentBalance || 10000;
+                    const pctGain = ((trade.netPnL / baseBalance) * 100).toFixed(2);
 
                     return (
                       <div
@@ -181,17 +188,31 @@ export default function DashboardPage() {
                         </div>
 
                         <div className="text-right">
-                          <div
-                            className={cn(
-                              "font-extrabold text-xs font-mono",
-                              isWin ? "text-emerald-400" : isLoss ? "text-red-400" : "text-slate-400"
-                            )}
-                          >
-                            {formatSignedCurrency(trade.netPnL)}
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span
+                              className={cn(
+                                "font-extrabold text-xs font-mono",
+                                isWin ? "text-emerald-400" : isLoss ? "text-rose-400" : "text-slate-400"
+                              )}
+                            >
+                              {formatSignedCurrency(trade.netPnL)}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded font-mono font-bold border",
+                                isWin
+                                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                  : isLoss
+                                  ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                                  : "bg-slate-800 text-slate-400 border-slate-700"
+                              )}
+                            >
+                              {trade.netPnL >= 0 ? `+${pctGain}%` : `${pctGain}%`}
+                            </span>
                           </div>
                           <div
                             className={cn(
-                              "text-[10px] font-mono",
+                              "text-[10px] font-mono mt-0.5",
                               trade.netPips >= 0 ? "text-emerald-400" : "text-red-400"
                             )}
                           >

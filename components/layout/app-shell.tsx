@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const [trades, setTrades] = React.useState<SampleTrade[]>([]);
   const [accounts, setAccounts] = React.useState<any[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = React.useState<string>("all");
+  const [selectedAccountId, setSelectedAccountId] = React.useState<string>("");
   const [isTradeModalOpen, setIsTradeModalOpen] = React.useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
   const [isCuanCardModalOpen, setIsCuanCardModalOpen] = React.useState(false);
@@ -50,7 +50,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const loadAccounts = React.useCallback(async () => {
     try {
       const fetchedAccounts = await fetchAccountsClient();
-      if (fetchedAccounts && fetchedAccounts.length > 0) setAccounts(fetchedAccounts);
+      if (fetchedAccounts && fetchedAccounts.length > 0) {
+        setAccounts(fetchedAccounts);
+        setSelectedAccountId((prev) => {
+          if (!prev || !fetchedAccounts.some((a: any) => a.id === prev)) {
+            return fetchedAccounts[0].id;
+          }
+          return prev;
+        });
+      }
     } catch (e) {
       console.warn("Error loading accounts:", e);
     }
@@ -62,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     async function loadData() {
       try {
-        const fetchedTrades = await fetchTradesClient(selectedAccountId);
+        const fetchedTrades = await fetchTradesClient(selectedAccountId || undefined);
         setTrades(fetchedTrades || []);
         await loadAccounts();
       } catch (e) {
@@ -85,9 +93,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
   };
 
-  // Filter trades based on selected account
+  // Filter trades strictly based on selected account
   const activeTrades = React.useMemo(() => {
-    if (selectedAccountId === "all") return trades;
+    if (!selectedAccountId || selectedAccountId === "all") return trades;
     return trades.filter((t) => t.accountId === selectedAccountId);
   }, [trades, selectedAccountId]);
 
@@ -163,6 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onClose={() => setIsTradeModalOpen(false)}
           onSaveTrade={handleSaveTrade}
           selectedAccountId={selectedAccountId}
+          accounts={accounts}
         />
 
         <MT5ImportDialog

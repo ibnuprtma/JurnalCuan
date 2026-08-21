@@ -35,7 +35,7 @@ interface HeaderProps {
 
 export function Header({
   accounts = [],
-  selectedAccountId = "all",
+  selectedAccountId = "",
   onSelectAccount,
   onOpenNewTradeModal,
 }: HeaderProps) {
@@ -85,7 +85,10 @@ export function Header({
     return () => clearInterval(timer);
   }, []);
 
-  const selectedAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
+  const isAllSelected = selectedAccountId === "all";
+  const selectedAccount = isAllSelected
+    ? { id: "all", name: "Semua Portofolio", broker: `${accounts.length} Akun Aktif` }
+    : accounts.find((a) => a.id === selectedAccountId) || accounts[0];
 
   return (
     <header className="h-16 border-b border-slate-800/80 bg-[#080c16]/80 backdrop-blur-xl sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between">
@@ -121,6 +124,27 @@ export function Header({
                 Pilih Portofolio Trading
               </div>
               <div className="space-y-1">
+                {accounts.length > 1 && (
+                  <button
+                    onClick={() => {
+                      onSelectAccount?.("all");
+                      setDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition-colors cursor-pointer",
+                      isAllSelected
+                        ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold"
+                        : "text-slate-300 hover:bg-slate-800/60"
+                    )}
+                  >
+                    <div>
+                      <div className="font-semibold text-white">Semua Portofolio (Gabungan)</div>
+                      <div className="text-[10px] text-slate-400">{accounts.length} Akun Aktif</div>
+                    </div>
+                    {isAllSelected && <Check className="h-4 w-4 text-emerald-400" />}
+                  </button>
+                )}
+
                 {accounts.map((acc) => {
                   const isSelected = acc.id === selectedAccountId;
                   return (
