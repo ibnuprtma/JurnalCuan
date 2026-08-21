@@ -6,6 +6,7 @@ import { useAppShell } from "@/components/layout/app-shell";
 import { KPISummaryCards } from "@/components/dashboard/kpi-summary-cards";
 import { PnLCalendar } from "@/components/calendar/pnl-calendar";
 import { EquityCurveChart } from "@/components/analytics/equity-curve-chart";
+import { MarketSessionsClock } from "@/components/market/market-sessions-clock";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatSignedCurrency, cn } from "@/lib/utils";
@@ -160,6 +161,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Visual Forex Market Sessions Clock */}
+      <MarketSessionsClock />
     </div>
   );
 }
