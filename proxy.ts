@@ -6,6 +6,7 @@ const PUBLIC_ROUTES = new Set(["/", "/auth/login", "/auth/logout", "/auth/callba
 
 // Prefix yang bisa diakses tanpa login
 const PUBLIC_PREFIXES = [
+  "/auth/",       // Auth0 internal routes (/auth/login, /auth/callback, etc.)
   "/share/",      // Live Share Portfolio publik
   "/api/share/",  // API query data portfolio publik
   "/api/sync/",   // MT5 EA Webhook (autentikasi via API Key)
@@ -20,14 +21,19 @@ function isPublicRoute(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Selalu jalankan Auth0 SDK middleware (menangani /auth/* routes & rolling session)
+  // Selalu jalankan Auth0 SDK middleware/proxy (menangani /auth/* routes & rolling session)
   const auth0Response = await auth0.middleware(request);
 
-  // Jika Auth0 SDK me-redirect (mis. /auth/callback), teruskan langsung
+  // Jika Auth0 SDK me-redirect (mis. /auth/login -> Auth0 Universal Login, /auth/callback), teruskan langsung
   if (auth0Response.status >= 300 && auth0Response.status < 400) {
+    return auth0Response;
+  }
+
+  // Jika ini adalah auth route (/auth/login, /auth/callback, /auth/logout), kembalikan response Auth0 SDK
+  if (pathname.startsWith("/auth/")) {
     return auth0Response;
   }
 
@@ -38,7 +44,7 @@ export async function middleware(request: NextRequest) {
 
   // Helper untuk unauthenticated response
   const handleUnauthorized = () => {
-    // Untuk API routes: kembalikan JSON 401 Unauthorized (bukan redirect HTML agar fetch() tidak error CORS)
+    // Untuk API routes: kembalikan JSON 401 Unauthorized
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         { error: "Unauthorized", message: "Silakan login terlebih dahulu" },
@@ -61,7 +67,7 @@ export async function middleware(request: NextRequest) {
     return handleUnauthorized();
   }
 
-  // 2. Cookie ada → verifikasi sesi sungguhan dengan Auth0
+  // 2. Cookie ada -> verifikasi sesi sungguhan dengan Auth0
   try {
     const session = await auth0.getSession(request);
     if (!session || !session.user) {
