@@ -15,28 +15,36 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-interface MarketSession {
+interface MarketSessionConfig {
   id: string;
   name: string;
   city: string;
   country: string;
   flag: string;
-  startHourWIB: number; // 0-23
-  endHourWIB: number;   // 0-23
+  timeZone: string;       // IANA Timezone identifier
+  tzAbbr: string;         // Short timezone name (e.g. EDT, BST, JST, AEST)
+  localOpenHour: number;  // Local bank open hour (e.g. 8)
+  localCloseHour: number; // Local bank close hour (e.g. 17)
+  wibHoursSummer: string; // e.g. "19:00 - 04:00 WIB"
+  wibHoursWinter: string; // e.g. "20:00 - 05:00 WIB"
   pairs: string[];
   description: string;
   volumeShare: string;
 }
 
-const SESSIONS: MarketSession[] = [
+const SESSIONS_CONFIG: MarketSessionConfig[] = [
   {
     id: "sydney",
     name: "Sesi Sydney",
     city: "Sydney",
     country: "Australia",
     flag: "🇦🇺",
-    startHourWIB: 5,
-    endHourWIB: 14,
+    timeZone: "Australia/Sydney",
+    tzAbbr: "AEST/AEDT",
+    localOpenHour: 8,
+    localCloseHour: 17,
+    wibHoursSummer: "05:00 - 14:00 WIB",
+    wibHoursWinter: "04:00 - 13:00 WIB",
     pairs: ["AUD/USD", "NZD/USD", "AUD/JPY"],
     description: "Pembuka pasar global, likuiditas awal",
     volumeShare: "4%",
@@ -47,8 +55,12 @@ const SESSIONS: MarketSession[] = [
     city: "Tokyo",
     country: "Jepang",
     flag: "🇯🇵",
-    startHourWIB: 7,
-    endHourWIB: 16,
+    timeZone: "Asia/Tokyo",
+    tzAbbr: "JST",
+    localOpenHour: 9,
+    localCloseHour: 18,
+    wibHoursSummer: "07:00 - 16:00 WIB",
+    wibHoursWinter: "07:00 - 16:00 WIB",
     pairs: ["USD/JPY", "EUR/JPY", "GBP/JPY"],
     description: "Sesi Asia, pergerakan Yen & komoditas",
     volumeShare: "19%",
@@ -59,8 +71,12 @@ const SESSIONS: MarketSession[] = [
     city: "London",
     country: "Inggris",
     flag: "🇬🇧",
-    startHourWIB: 14,
-    endHourWIB: 23,
+    timeZone: "Europe/London",
+    tzAbbr: "BST/GMT",
+    localOpenHour: 8,
+    localCloseHour: 17,
+    wibHoursSummer: "14:00 - 23:00 WIB",
+    wibHoursWinter: "15:00 - 00:00 WIB",
     pairs: ["EUR/USD", "GBP/USD", "XAU/USD"],
     description: "Pusat volume forex terbesar dunia",
     volumeShare: "38%",
@@ -71,67 +87,63 @@ const SESSIONS: MarketSession[] = [
     city: "New York",
     country: "Amerika Serikat",
     flag: "🇺🇸",
-    startHourWIB: 19,
-    endHourWIB: 4, // passes midnight (19:00 - 04:00 WIB)
+    timeZone: "America/New_York",
+    tzAbbr: "EDT/EST",
+    localOpenHour: 8,
+    localCloseHour: 17,
+    wibHoursSummer: "19:00 - 04:00 WIB",
+    wibHoursWinter: "20:00 - 05:00 WIB",
     pairs: ["EUR/USD", "GBP/USD", "USD/CAD", "XAU/USD"],
     description: "Volatilitas tinggi, rilis data US & FOMC",
     volumeShare: "21%",
   },
 ];
 
-function isSessionOpen(start: number, end: number, currentDecimalHour: number): boolean {
-  if (start < end) {
-    return currentDecimalHour >= start && currentDecimalHour < end;
+function getDecimalHourInTimezone(date: Date, timeZone: string): number {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(date);
+  const hour = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10);
+  const minute = parseInt(parts.find((p) => p.type === "minute")?.value || "0", 10);
+  const second = parseInt(parts.find((p) => p.type === "second")?.value || "0", 10);
+
+  return (hour % 24) + minute / 60 + second / 3600;
+}
+
+function getLocalTimeString(date: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function isSessionOpenLocal(localDecimalHour: number, openHour: number, closeHour: number): boolean {
+  if (openHour < closeHour) {
+    return localDecimalHour >= openHour && localDecimalHour < closeHour;
   } else {
-    // Crosses midnight (e.g. 19:00 to 04:00)
-    return currentDecimalHour >= start || currentDecimalHour < end;
+    return localDecimalHour >= openHour || localDecimalHour < closeHour;
   }
 }
 
-function getSessionProgress(start: number, end: number, currentDecimalHour: number): number {
-  if (!isSessionOpen(start, end, currentDecimalHour)) return 0;
-
-  const totalDuration = start < end ? end - start : 24 - start + end;
-  let elapsed = 0;
-
-  if (start < end) {
-    elapsed = currentDecimalHour - start;
-  } else {
-    if (currentDecimalHour >= start) {
-      elapsed = currentDecimalHour - start;
-    } else {
-      elapsed = 24 - start + currentDecimalHour;
-    }
-  }
-
-  return Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+function getSessionProgressLocal(localDecimalHour: number, openHour: number, closeHour: number): number {
+  if (!isSessionOpenLocal(localDecimalHour, openHour, closeHour)) return 0;
+  const duration = closeHour - openHour;
+  const elapsed = localDecimalHour - openHour;
+  return Math.min(100, Math.max(0, (elapsed / duration) * 100));
 }
 
-function getTimeRemainingString(endHour: number, currentDecimalHour: number): string {
-  let remainingHours = 0;
-  if (currentDecimalHour < endHour) {
-    remainingHours = endHour - currentDecimalHour;
-  } else {
-    remainingHours = 24 - currentDecimalHour + endHour;
-  }
-
-  const hours = Math.floor(remainingHours);
-  const minutes = Math.floor((remainingHours - hours) * 60);
-
-  return `${hours}j ${minutes}m`;
-}
-
-function getTimeUntilOpenString(startHour: number, currentDecimalHour: number): string {
-  let hoursUntil = 0;
-  if (currentDecimalHour < startHour) {
-    hoursUntil = startHour - currentDecimalHour;
-  } else {
-    hoursUntil = 24 - currentDecimalHour + startHour;
-  }
-
-  const hours = Math.floor(hoursUntil);
-  const minutes = Math.floor((hoursUntil - hours) * 60);
-
+function formatRemainingTime(hoursDecimal: number): string {
+  const hours = Math.floor(hoursDecimal);
+  const minutes = Math.floor((hoursDecimal - hours) * 60);
   return `${hours}j ${minutes}m`;
 }
 
@@ -146,13 +158,7 @@ export function MarketSessionsClock() {
 
   if (!now) return null;
 
-  // Calculate WIB time (UTC+7)
-  const utcHours = now.getUTCHours();
-  const utcMinutes = now.getUTCMinutes();
-  const utcSeconds = now.getUTCSeconds();
-
-  const wibDecimalHour = (utcHours + 7 + utcMinutes / 60 + utcSeconds / 3600) % 24;
-
+  // Jakarta Time
   const wibTimeString = new Intl.DateTimeFormat("id-ID", {
     timeZone: "Asia/Jakarta",
     hour: "2-digit",
@@ -165,11 +171,17 @@ export function MarketSessionsClock() {
     timeZone: "UTC",
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
     hour12: false,
   }).format(now);
 
-  // Check Overlap London & New York (19:00 - 23:00 WIB)
-  const isOverlapActive = wibDecimalHour >= 19 && wibDecimalHour < 23;
+  // Check London & NY live hours
+  const londonLocalHour = getDecimalHourInTimezone(now, "Europe/London");
+  const nyLocalHour = getDecimalHourInTimezone(now, "America/New_York");
+
+  const isLondonOpen = isSessionOpenLocal(londonLocalHour, 8, 17);
+  const isNyOpen = isSessionOpenLocal(nyLocalHour, 8, 17);
+  const isOverlapActive = isLondonOpen && isNyOpen;
 
   return (
     <div className="p-6 rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl shadow-2xl space-y-6">
@@ -183,11 +195,11 @@ export function MarketSessionsClock() {
             <div className="flex items-center gap-2">
               <h2 className="text-base font-extrabold text-white">Jam Pasar Forex Dunia (Live Market Clock)</h2>
               <Badge variant="outline" className="text-[10px] font-mono border-slate-700 bg-slate-950 text-slate-300">
-                WIB & UTC
+                Waktu Indonesia (WIB)
               </Badge>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Pantau sesi pasar yang sedang aktif untuk menentukan momen volatilitas & likuiditas terbaik
+              Pantau jadwal buka/tutup sesi pasar dunia yang telah dikonversi langsung ke Waktu Indonesia Barat (WIB)
             </p>
           </div>
         </div>
@@ -216,31 +228,44 @@ export function MarketSessionsClock() {
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-sm text-white">London – New York Overlap Sedang Berlangsung!</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black uppercase tracking-wider">
-                  Golden Hours
+                  Golden Hours (19:00 - 23:00 WIB)
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                Volatilitas dan volume trading tertinggi hari ini (19:00 - 23:00 WIB). Spread paling tipis untuk pair EUR/USD, GBP/USD, dan XAU/USD.
+                Volatilitas & likuiditas pasar forex tertinggi saat ini. Spread paling tipis untuk pair EUR/USD, GBP/USD, dan XAU/USD.
               </p>
             </div>
           </div>
           <Badge variant="outline" className="hidden md:flex border-amber-500/50 text-amber-300 font-mono text-xs">
-            Berakhir dlm {getTimeRemainingString(23, wibDecimalHour)}
+            Sesi Bersama Aktif
           </Badge>
         </div>
       )}
 
       {/* 4 Major Sessions Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {SESSIONS.map((session) => {
-          const isOpen = isSessionOpen(session.startHourWIB, session.endHourWIB, wibDecimalHour);
-          const progress = getSessionProgress(session.startHourWIB, session.endHourWIB, wibDecimalHour);
-          const timeRemaining = getTimeRemainingString(session.endHourWIB, wibDecimalHour);
-          const timeUntilOpen = getTimeUntilOpenString(session.startHourWIB, wibDecimalHour);
+        {SESSIONS_CONFIG.map((session) => {
+          const localHour = getDecimalHourInTimezone(now, session.timeZone);
+          const localTimeStr = getLocalTimeString(now, session.timeZone);
+          const isOpen = isSessionOpenLocal(localHour, session.localOpenHour, session.localCloseHour);
+          const progress = getSessionProgressLocal(localHour, session.localOpenHour, session.localCloseHour);
 
-          const timeFormatted = `${String(session.startHourWIB).padStart(2, "0")}:00 - ${String(
-            session.endHourWIB
-          ).padStart(2, "0")}:00 WIB`;
+          // Calculate remaining or until open
+          let timeRemainingStr = "";
+          let timeUntilOpenStr = "";
+
+          if (isOpen) {
+            const remainingHours = session.localCloseHour - localHour;
+            timeRemainingStr = formatRemainingTime(remainingHours);
+          } else {
+            let hoursUntil = 0;
+            if (localHour < session.localOpenHour) {
+              hoursUntil = session.localOpenHour - localHour;
+            } else {
+              hoursUntil = 24 - localHour + session.localOpenHour;
+            }
+            timeUntilOpenStr = formatRemainingTime(hoursUntil);
+          }
 
           return (
             <div
@@ -257,7 +282,7 @@ export function MarketSessionsClock() {
                   <span className="text-2xl">{session.flag}</span>
                   <div>
                     <h3 className="font-extrabold text-sm text-white">{session.name}</h3>
-                    <p className="text-[10px] text-slate-400">{session.country}</p>
+                    <p className="text-[10px] text-slate-400">{session.city}, {session.country}</p>
                   </div>
                 </div>
 
@@ -278,16 +303,31 @@ export function MarketSessionsClock() {
                 </Badge>
               </div>
 
-              {/* Hours & Status Details */}
+              {/* Time Details Section */}
               <div className="space-y-2">
-                <div className="text-xs font-mono text-slate-300 font-semibold flex items-center justify-between">
-                  <span>{timeFormatted}</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Vol: {session.volumeShare}</span>
+                {/* Primary: Jam Operasional WIB */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold uppercase">
+                    <span>Jam Operasional WIB</span>
+                    <span className="text-emerald-400 font-mono">Vol: {session.volumeShare}</span>
+                  </div>
+                  <div className="text-sm font-bold text-white font-mono flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>{session.wibHoursSummer}</span>
+                  </div>
+                </div>
+
+                {/* Secondary: Jam Lokal di Kota Asal */}
+                <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                  <span>Waktu di {session.city}:</span>
+                  <span className="font-mono text-slate-200 font-semibold">
+                    {localTimeStr} ({session.localOpenHour}:00-{session.localCloseHour}:00)
+                  </span>
                 </div>
 
                 {/* Progress Bar (if open) or Countdown (if closed) */}
                 {isOpen ? (
-                  <div className="space-y-1">
+                  <div className="space-y-1 pt-1">
                     <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
@@ -296,13 +336,13 @@ export function MarketSessionsClock() {
                     </div>
                     <div className="flex items-center justify-between text-[10px] text-slate-400">
                       <span>Progres: {Math.round(progress)}%</span>
-                      <span className="text-emerald-400 font-mono">Sisa: {timeRemaining}</span>
+                      <span className="text-emerald-400 font-mono font-bold">Tutup dlm: {timeRemainingStr}</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
+                  <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60 px-1">
                     <span>Buka dalam:</span>
-                    <span className="font-mono font-bold text-slate-300">{timeUntilOpen}</span>
+                    <span className="font-mono font-bold text-emerald-400">{timeUntilOpenStr}</span>
                   </div>
                 )}
               </div>

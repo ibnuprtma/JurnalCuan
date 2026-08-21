@@ -93,6 +93,7 @@ export function Header({
       <div className="relative">
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
+          aria-label="Pilih Portofolio Akun Trading"
           className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-800 hover:border-slate-700 transition-all duration-200 text-left cursor-pointer group"
         >
           <div className="h-7 w-7 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -168,6 +169,7 @@ export function Header({
         <Button
           onClick={onOpenNewTradeModal}
           size="sm"
+          aria-label="Catat Transaksi Trade Baru"
           className="gap-1.5 shadow-md shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold"
         >
           <Plus className="h-3.5 w-3.5 stroke-[3]" />
@@ -179,6 +181,7 @@ export function Header({
         <Link
           href="/share-settings"
           title="Live Share Portfolio"
+          aria-label="Pengaturan Live Share Portfolio"
           className="h-8 w-8 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center text-emerald-400 hover:bg-slate-800 hover:border-emerald-500/50 transition-colors"
         >
           <Shield className="h-4 w-4" />
@@ -191,12 +194,13 @@ export function Header({
               <>
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  aria-label="Buka Menu Pengguna"
                   className="flex items-center gap-2 p-1 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 transition-colors cursor-pointer"
                 >
                   {authUser.avatarUrl ? (
                     <img
                       src={authUser.avatarUrl}
-                      alt={authUser.name}
+                      alt={authUser.name || "Avatar"}
                       className="h-7 w-7 rounded-lg object-cover"
                     />
                   ) : (

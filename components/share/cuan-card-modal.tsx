@@ -5,7 +5,8 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogCloseButton
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatSignedCurrency } from "@/lib/utils";
 import { SampleTrade } from "@/lib/sample-data";
-import { Download, Sparkles, TrendingUp, TrendingDown, Share2, Copy, Check } from "lucide-react";
+import { Download, Sparkles, TrendingUp, TrendingDown, Share2, Copy, Check, Loader2 } from "lucide-react";
+import { toPng } from "html-to-image";
 
 interface CuanCardModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface CuanCardModalProps {
 
 export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal Account" }: CuanCardModalProps) {
   const [copied, setCopied] = React.useState(false);
+  const [isDownloading, setIsDownloading] = React.useState(false);
   const [aspectRatio, setAspectRatio] = React.useState<"story" | "square">("story");
   const cardRef = React.useRef<HTMLDivElement>(null);
 
@@ -31,9 +33,29 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
   const winRate = trades.length > 0 ? (winCount / trades.length) * 100 : 0;
   const topTrade = [...trades].sort((a, b) => b.netPnL - a.netPnL)[0];
 
-  const handleDownload = () => {
-    // In browser, create canvas screenshot or direct prompt
-    alert("Cuan Card siap diunduh! Screenshot gambar atau bagikan langsung ke media sosial kamu.");
+  const handleDownload = async () => {
+    if (!cardRef.current) return;
+    setIsDownloading(true);
+    try {
+      // Generate crisp 2x resolution PNG
+      const dataUrl = await toPng(cardRef.current, {
+        quality: 0.95,
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+
+      const slug = accountName.toLowerCase().replace(/\s+/g, "-");
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const link = document.createElement("a");
+      link.download = `cuan-card-${slug}-${dateStr}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Gagal men-generate gambar Cuan Card:", error);
+      alert("Gagal mengunduh Cuan Card. Silakan coba beberapa saat lagi.");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleCopyLink = () => {
@@ -144,9 +166,17 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
           {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
           <span>{copied ? "Tersalin!" : "Salin Link"}</span>
         </Button>
-        <Button onClick={handleDownload} className="gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">
-          <Download className="h-4 w-4 stroke-[2.5]" />
-          <span>Download Cuan Card</span>
+        <Button
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold"
+        >
+          {isDownloading ? (
+            <Loader2 className="h-4 w-4 animate-spin stroke-[2.5]" />
+          ) : (
+            <Download className="h-4 w-4 stroke-[2.5]" />
+          )}
+          <span>{isDownloading ? "Men-generate PNG..." : "Download Cuan Card"}</span>
         </Button>
       </DialogFooter>
     </Dialog>

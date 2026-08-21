@@ -64,10 +64,10 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 border-r border-slate-800/80 bg-[#080c16]/95 backdrop-blur-xl h-screen sticky top-0 z-40 p-4 justify-between">
+    <aside aria-label="Sidebar Navigasi" className="hidden lg:flex flex-col w-64 border-r border-slate-800/80 bg-[#080c16]/95 backdrop-blur-xl h-screen sticky top-0 z-40 p-4 justify-between">
       {/* Brand Header */}
       <div className="space-y-6">
-        <Link href="/dashboard" className="flex items-center gap-3 px-2 pt-2 group">
+        <Link href="/dashboard" aria-label="Jurnal Cuan Beranda" className="flex items-center gap-3 px-2 pt-2 group">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform duration-200">
             <TrendingUp className="h-5 w-5 text-slate-950 stroke-[2.5]" />
           </div>
@@ -81,7 +81,7 @@ export function Sidebar() {
         </Link>
 
         {/* Navigation Links */}
-        <nav className="space-y-1">
+        <nav aria-label="Menu Utama" className="space-y-1">
           {NAV_ITEMS.map((item) => {
             const isActive =
               pathname === item.href || (item.href !== "/dashboard" && pathname?.startsWith(item.href));
@@ -91,6 +91,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-label={`Buka halaman ${item.label}`}
                 className={cn(
                   "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group relative",
                   isActive

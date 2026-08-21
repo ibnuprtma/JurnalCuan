@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useAppShell } from "@/components/layout/app-shell";
 import { KPISummaryCards } from "@/components/dashboard/kpi-summary-cards";
 import { PnLCalendar } from "@/components/calendar/pnl-calendar";
-import { EquityCurveChart } from "@/components/analytics/equity-curve-chart";
-import { MarketSessionsClock } from "@/components/market/market-sessions-clock";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatSignedCurrency, cn } from "@/lib/utils";
@@ -20,6 +19,38 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react";
+
+// Dynamic import heavy Recharts component to avoid initial render-blocking & forced reflow
+const EquityCurveChart = dynamic(
+  () => import("@/components/analytics/equity-curve-chart").then((m) => m.EquityCurveChart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[360px] rounded-3xl border border-slate-800/80 bg-slate-900/60 p-6 flex flex-col justify-between animate-pulse">
+        <div className="space-y-2">
+          <div className="h-4 w-36 bg-slate-800 rounded" />
+          <div className="h-3 w-48 bg-slate-800/60 rounded" />
+        </div>
+        <div className="h-[200px] w-full bg-slate-800/30 rounded-2xl flex items-center justify-center text-xs text-slate-500">
+          Memuat visual grafik performa...
+        </div>
+      </div>
+    ),
+  }
+);
+
+// Dynamic import MarketSessionsClock
+const MarketSessionsClock = dynamic(
+  () => import("@/components/market/market-sessions-clock").then((m) => m.MarketSessionsClock),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[240px] rounded-3xl border border-slate-800/80 bg-slate-900/60 p-6 flex items-center justify-center animate-pulse text-xs text-slate-500">
+        Sinkronisasi jam pasar forex global...
+      </div>
+    ),
+  }
+);
 
 export default function DashboardPage() {
   const { trades, openNewTradeModal, openImportModal, openCuanCardModal } = useAppShell();
@@ -117,47 +148,72 @@ export default function DashboardPage() {
                 </Link>
               </div>
 
-              <div className="divide-y divide-slate-800/60 mt-2 space-y-2">
-                {recentTrades.map((t) => (
-                  <div key={t.id} className="pt-2 flex items-center justify-between font-mono text-xs">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-white">{t.pair}</span>
-                        <Badge variant={t.direction === "BUY" ? "buy" : "sell"} className="text-[9px] px-1 py-0">
-                          {t.direction}
-                        </Badge>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-sans">
-                        {t.lotSize} Lot • {t.strategyName}
-                      </span>
-                    </div>
-
-                    <div
-                      className={cn(
-                        "font-extrabold text-right",
-                        t.netPnL > 0 ? "text-emerald-400" : t.netPnL < 0 ? "text-rose-400" : "text-slate-400"
-                      )}
-                    >
-                      <div>{formatSignedCurrency(t.netPnL)}</div>
-                      <div className="text-[10px] text-slate-500">
-                        {t.netPips > 0 ? `+${t.netPips}` : t.netPips} pips
-                      </div>
-                    </div>
+              <div className="space-y-2 mt-3">
+                {recentTrades.length === 0 ? (
+                  <div className="py-8 text-center text-slate-500 text-xs">
+                    Belum ada data trade. Mulai dengan mencatat trade pertama kamu!
                   </div>
-                ))}
+                ) : (
+                  recentTrades.map((trade) => {
+                    const isWin = trade.netPnL > 0;
+                    const isLoss = trade.netPnL < 0;
+
+                    return (
+                      <div
+                        key={trade.id}
+                        className="p-3 rounded-2xl border border-slate-800/60 bg-slate-950/50 flex items-center justify-between hover:border-slate-700 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={cn(
+                              "h-8 w-8 rounded-xl flex items-center justify-center font-bold text-xs",
+                              trade.direction === "BUY"
+                                ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+                                : "bg-purple-500/10 text-purple-400 border border-purple-500/30"
+                            )}
+                          >
+                            {trade.direction}
+                          </div>
+                          <div>
+                            <div className="font-bold text-xs text-white">{trade.pair}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{trade.lotSize} Lot</div>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <div
+                            className={cn(
+                              "font-extrabold text-xs font-mono",
+                              isWin ? "text-emerald-400" : isLoss ? "text-red-400" : "text-slate-400"
+                            )}
+                          >
+                            {formatSignedCurrency(trade.netPnL)}
+                          </div>
+                          <div
+                            className={cn(
+                              "text-[10px] font-mono",
+                              trade.netPips >= 0 ? "text-emerald-400" : "text-red-400"
+                            )}
+                          >
+                            {trade.netPips >= 0 ? `+${trade.netPips}` : trade.netPips} pips
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-800/80">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={openNewTradeModal}
-                className="w-full text-xs gap-1.5 justify-center"
-              >
-                <Plus className="h-3.5 w-3.5" /> Catat Trade Sekarang
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openNewTradeModal}
+              className="w-full text-xs gap-1.5 border-dashed border-slate-700 hover:border-emerald-500/50 text-slate-300"
+            >
+              <Plus className="h-3 w-3" />
+              <span>Tambah Transaksi Baru</span>
+            </Button>
           </div>
         </div>
       </div>
