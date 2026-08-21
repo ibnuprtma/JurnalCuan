@@ -40,6 +40,8 @@ model User {
   username      String?          @unique
   avatarUrl     String?
   bio           String?
+  currency      String           @default("USD")
+  timezone      String           @default("Asia/Jakarta")
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   accounts      TradingAccount[]
@@ -61,10 +63,13 @@ model TradingAccount {
   initialBalance     Decimal     @default(0.0) @db.Decimal(15, 2)
   currentBalance     Decimal     @default(0.0) @db.Decimal(15, 2)
   currency           String      @default("USD")
+  syncMethod         SyncMethod  @default(MANUAL_ENTRY)
   isArchived         Boolean     @default(false)
   isPublic           Boolean     @default(false)
   publicSlug         String?     @unique
   hideDollarAmounts  Boolean     @default(false)
+  hideOpenTrades     Boolean     @default(false)
+  syncApiKey         String?     @unique @default(uuid())
   webhookApiKey      String?     @unique @default(uuid())
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
@@ -77,7 +82,7 @@ model Trade {
   id               String          @id @default(uuid())
   accountId        String
   account          TradingAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  ticketId         String?         @unique
+  ticketId         String?
   pair             String
   direction        TradeDirection
   session          TradingSession  @default(OTHER)
@@ -96,6 +101,7 @@ model Trade {
   riskRewardRatio  Decimal?        @db.Decimal(6, 2)
   status           TradeStatus     @default(OPEN)
   syncMethod       SyncMethod      @default(MANUAL_ENTRY)
+  syncSource       String?         @default("MANUAL_ENTRY")
   screenshotUrl    String?
   notes            String?
   emotionTag       String?
@@ -106,6 +112,7 @@ model Trade {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
+  @@unique([accountId, ticketId])
   @@index([accountId])
   @@index([openTime])
   @@index([pair])
