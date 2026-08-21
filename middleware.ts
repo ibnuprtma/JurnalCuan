@@ -7,6 +7,7 @@ const PUBLIC_ROUTES = new Set(["/", "/auth/login", "/auth/logout", "/auth/callba
 // Prefix yang bisa diakses tanpa login
 const PUBLIC_PREFIXES = [
   "/share/",     // Live Share Portfolio publik
+  "/api/share/", // API query data portfolio publik
   "/api/sync/",  // MT5 EA Webhook (autentikasi via API Key)
   "/api/news",   // Kalender berita publik
   "/api/auth/",  // Auth0 internal API routes

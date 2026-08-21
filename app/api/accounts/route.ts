@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.id,
         name: name.trim(),
-        broker: broker?.trim() || null,
+        broker: broker?.trim() || "-",
         accountNumber: accountNumber?.trim() || null,
         accountType,
         initialBalance: balance,
@@ -82,6 +82,54 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("POST /api/accounts error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Belum login" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { accountId, isPublic, hideDollarAmounts, publicSlug } = body;
+
+    if (!accountId) {
+      return NextResponse.json({ error: "accountId wajib disertakan" }, { status: 400 });
+    }
+
+    // Verifikasi akun milik user yang login
+    const account = await prisma.tradingAccount.findFirst({
+      where: { id: accountId, userId: user.id },
+    });
+
+    if (!account) {
+      return NextResponse.json({ error: "Akun tidak ditemukan" }, { status: 404 });
+    }
+
+    const updated = await prisma.tradingAccount.update({
+      where: { id: accountId },
+      data: {
+        isPublic: typeof isPublic === "boolean" ? isPublic : undefined,
+        hideDollarAmounts: typeof hideDollarAmounts === "boolean" ? hideDollarAmounts : undefined,
+        publicSlug: publicSlug ? publicSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-") : undefined,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      account: {
+        id: updated.id,
+        name: updated.name,
+        isPublic: updated.isPublic,
+        hideDollarAmounts: updated.hideDollarAmounts,
+        publicSlug: updated.publicSlug,
+      },
+    });
+  } catch (error: any) {
+    console.error("PATCH /api/accounts error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

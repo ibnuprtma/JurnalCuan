@@ -21,8 +21,8 @@ import {
 
 interface TradesTableProps {
   trades: SampleTrade[];
-  onOpenNewTrade: () => void;
-  onOpenImportModal: () => void;
+  onOpenNewTrade?: () => void;
+  onOpenImportModal?: () => void;
 }
 
 export function TradesTable({ trades, onOpenNewTrade, onOpenImportModal }: TradesTableProps) {
@@ -149,26 +149,32 @@ export function TradesTable({ trades, onOpenNewTrade, onOpenImportModal }: Trade
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenImportModal}
-            className="gap-1.5 text-xs flex-1 sm:flex-initial"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            <span>Import MT5</span>
-          </Button>
+        {(onOpenImportModal || onOpenNewTrade) && (
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {onOpenImportModal && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenImportModal}
+                className="gap-1.5 text-xs flex-1 sm:flex-initial"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span>Import MT5</span>
+              </Button>
+            )}
 
-          <Button
-            size="sm"
-            onClick={onOpenNewTrade}
-            className="gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex-1 sm:flex-initial"
-          >
-            <Plus className="h-3.5 w-3.5 stroke-[3]" />
-            <span>Catat Trade</span>
-          </Button>
-        </div>
+            {onOpenNewTrade && (
+              <Button
+                size="sm"
+                onClick={onOpenNewTrade}
+                className="gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex-1 sm:flex-initial"
+              >
+                <Plus className="h-3.5 w-3.5 stroke-[3]" />
+                <span>Catat Trade</span>
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* TanStack-style Table */}
