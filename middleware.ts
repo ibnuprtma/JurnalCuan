@@ -1,8 +1,8 @@
 import { auth0 } from "@/lib/auth0";
 import { NextRequest, NextResponse } from "next/server";
 
-// Routes yang bisa diakses tanpa login
-const PUBLIC_ROUTES = new Set(["/auth/login", "/auth/logout", "/auth/callback", "/auth/profile"]);
+// Routes yang bisa diakses tanpa login (termasuk halaman utama '/')
+const PUBLIC_ROUTES = new Set(["/", "/auth/login", "/auth/logout", "/auth/callback", "/auth/profile"]);
 
 // Prefix yang bisa diakses tanpa login
 const PUBLIC_PREFIXES = [
@@ -34,30 +34,39 @@ export async function middleware(request: NextRequest) {
     return auth0Response;
   }
 
+  // Helper untuk unauthenticated response
+  const handleUnauthorized = () => {
+    // Untuk API routes: kembalikan JSON 401 Unauthorized (bukan redirect HTML agar fetch() tidak error CORS)
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Silakan login terlebih dahulu" },
+        { status: 401 }
+      );
+    }
+
+    // Untuk Page routes: redirect ke /auth/login dengan returnTo
+    const loginUrl = new URL("/auth/login", request.nextUrl.origin);
+    loginUrl.searchParams.set("returnTo", pathname + request.nextUrl.search);
+    return NextResponse.redirect(loginUrl);
+  };
+
   // === ROUTE PROTECTION ===
-  // Cek keberadaan session cookie (nama default Auth0 v4 adalah "__session")
-  // Ini adalah pengecekan cepat sebelum dekripsi penuh
+  // 1. Cek keberadaan session cookie (__session / appSession)
   const sessionCookie =
     request.cookies.get("__session") || request.cookies.get("appSession");
 
   if (!sessionCookie) {
-    // Tidak ada cookie sesi → redirect ke login
-    const loginUrl = new URL("/auth/login", request.nextUrl.origin);
-    loginUrl.searchParams.set("returnTo", pathname + request.nextUrl.search);
-    return NextResponse.redirect(loginUrl);
+    return handleUnauthorized();
   }
 
-  // Cookie ada → verifikasi sesi sungguhan dengan Auth0
+  // 2. Cookie ada → verifikasi sesi sungguhan dengan Auth0
   try {
     const session = await auth0.getSession(request);
     if (!session || !session.user) {
-      const loginUrl = new URL("/auth/login", request.nextUrl.origin);
-      loginUrl.searchParams.set("returnTo", pathname);
-      return NextResponse.redirect(loginUrl);
+      return handleUnauthorized();
     }
   } catch {
-    const loginUrl = new URL("/auth/login", request.nextUrl.origin);
-    return NextResponse.redirect(loginUrl);
+    return handleUnauthorized();
   }
 
   return auth0Response;

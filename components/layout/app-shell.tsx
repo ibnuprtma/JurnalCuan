@@ -55,8 +55,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Load trades on mount
+  // Load trades on mount (hanya untuk halaman aplikasi berautentikasi, lewati di Landing Page / Share Page)
   React.useEffect(() => {
+    if (pathname === "/" || isPublicShareRoute) return;
+
     async function loadData() {
       try {
         const fetchedTrades = await fetchTradesClient(selectedAccountId);
@@ -67,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       }
     }
     loadData();
-  }, [selectedAccountId, loadAccounts]);
+  }, [pathname, isPublicShareRoute, selectedAccountId, loadAccounts]);
 
   const handleSaveTrade = async (tradeData: any) => {
     const saved = await saveTradeClient(tradeData);
@@ -88,8 +90,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return trades.filter((t) => t.accountId === selectedAccountId);
   }, [trades, selectedAccountId]);
 
-  // If this is a public share page (/share/[username]/[accountSlug]), render standalone view without sidebar/header
-  if (isPublicShareRoute) {
+  const isLandingRoute = pathname === "/";
+  const isStandaloneRoute = isPublicShareRoute || isLandingRoute;
+
+  // If this is a public share page or landing page, render standalone view without sidebar/header
+  if (isStandaloneRoute) {
     return (
       <AppShellContext.Provider
         value={{

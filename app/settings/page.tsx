@@ -112,6 +112,8 @@ export default function SettingsPage() {
   const [currency] = React.useState("USD ($)");
   const [savedStatus, setSavedStatus] = React.useState(false);
   const [isAuth, setIsAuth] = React.useState(false);
+  const [isSavingProfile, setIsSavingProfile] = React.useState(false);
+  const [profileError, setProfileError] = React.useState<string | null>(null);
 
   // Form buat akun baru
   const [showAddAccount, setShowAddAccount] = React.useState(false);
@@ -162,10 +164,35 @@ export default function SettingsPage() {
     loadAuth();
   }, []);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavedStatus(true);
-    setTimeout(() => setSavedStatus(false), 3000);
+    setProfileError(null);
+    setIsSavingProfile(true);
+
+    try {
+      const res = await fetch("/api/auth/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: userName }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setProfileError(data.error || "Gagal menyimpan profil");
+        return;
+      }
+
+      if (data.user?.name) {
+        setUserName(data.user.name);
+      }
+
+      setSavedStatus(true);
+      setTimeout(() => setSavedStatus(false), 3500);
+    } catch (err) {
+      setProfileError("Koneksi gagal saat menyimpan profil");
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handleCreateAccount = async (e: React.FormEvent) => {
@@ -302,14 +329,34 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {profileError && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+              <X className="h-3.5 w-3.5 flex-shrink-0" />
+              {profileError}
+            </div>
+          )}
+
           <div className="flex items-center justify-between pt-2">
-            {savedStatus && (
-              <span className="text-xs text-emerald-400 font-bold flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4" /> Pengaturan berhasil disimpan!
+            {savedStatus ? (
+              <span className="text-xs text-emerald-400 font-bold flex items-center gap-1.5 animate-in fade-in">
+                <CheckCircle2 className="h-4 w-4" /> Profil berhasil disimpan ke database!
               </span>
+            ) : (
+              <span />
             )}
-            <Button type="submit" size="sm" className="ml-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">
-              Simpan Profil
+            <Button
+              type="submit"
+              size="sm"
+              disabled={isSavingProfile || !userName.trim()}
+              className="ml-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold gap-1.5"
+            >
+              {isSavingProfile ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Menyimpan...
+                </>
+              ) : (
+                "Simpan Profil"
+              )}
             </Button>
           </div>
         </form>
