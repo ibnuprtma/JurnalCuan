@@ -2,7 +2,18 @@ import { auth0 } from "@/lib/auth0";
 import { NextRequest, NextResponse } from "next/server";
 
 // Routes yang bisa diakses tanpa login (termasuk halaman utama '/')
-const PUBLIC_ROUTES = new Set(["/", "/auth/login", "/auth/logout", "/auth/callback", "/auth/profile"]);
+const PUBLIC_ROUTES = new Set([
+  "/",
+  "/manifest.json",
+  "/site.webmanifest",
+  "/favicon.ico",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/auth/login",
+  "/auth/logout",
+  "/auth/callback",
+  "/auth/profile",
+]);
 
 // Prefix yang bisa diakses tanpa login
 const PUBLIC_PREFIXES = [
@@ -18,13 +29,21 @@ const PUBLIC_PREFIXES = [
 function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.has(pathname)) return true;
   if (pathname.startsWith("/auth/")) return true;
+  if (pathname.endsWith(".json") || pathname.endsWith(".png") || pathname.endsWith(".ico") || pathname.endsWith(".svg") || pathname.endsWith(".webp") || pathname.endsWith(".jpg")) {
+    return true;
+  }
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Selalu jalankan Auth0 SDK middleware/proxy (menangani /auth/* routes & rolling session)
+  // Izinkan semua route publik dan file asset tanpa pengecekan sesi
+  if (isPublicRoute(pathname)) {
+    return await auth0.middleware(request);
+  }
+
+  // Jalankan Auth0 SDK middleware/proxy (menangani /auth/* routes & rolling session)
   const auth0Response = await auth0.middleware(request);
 
   // Jika Auth0 SDK me-redirect (mis. /auth/login -> Auth0 Universal Login, /auth/callback), teruskan langsung
@@ -32,27 +51,23 @@ export async function proxy(request: NextRequest) {
     return auth0Response;
   }
 
-  // Jika ini adalah auth route (/auth/login, /auth/callback, /auth/logout), kembalikan response Auth0 SDK
-  if (pathname.startsWith("/auth/")) {
-    return auth0Response;
-  }
-
-  // Izinkan semua route publik tanpa pengecekan sesi
-  if (isPublicRoute(pathname)) {
-    return auth0Response;
-  }
-
   // Helper untuk unauthenticated response
   const handleUnauthorized = () => {
-    // Untuk API routes: kembalikan JSON 401 Unauthorized
-    if (pathname.startsWith("/api/")) {
+    // Untuk API routes atau fetch request: kembalikan JSON 401 Unauthorized (mencegah CORS redirect)
+    const isFetchOrApi =
+      pathname.startsWith("/api/") ||
+      pathname.endsWith(".json") ||
+      request.headers.get("accept")?.includes("application/json") ||
+      request.headers.get("sec-fetch-dest") === "empty";
+
+    if (isFetchOrApi) {
       return NextResponse.json(
         { error: "Unauthorized", message: "Silakan login terlebih dahulu" },
         { status: 401 }
       );
     }
 
-    // Untuk Page routes: redirect ke /auth/login dengan returnTo
+    // Untuk Page navigation normal: redirect ke /auth/login dengan returnTo
     const loginUrl = new URL("/auth/login", request.nextUrl.origin);
     loginUrl.searchParams.set("returnTo", pathname + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
@@ -82,6 +97,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
