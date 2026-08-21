@@ -115,7 +115,7 @@ export default function DashboardPage() {
             className="gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20"
           >
             <Plus className="h-3.5 w-3.5 stroke-[3]" />
-            <span>+ Catat Trade</span>
+            <span>Catat Trade</span>
           </Button>
         </div>
       </div>
