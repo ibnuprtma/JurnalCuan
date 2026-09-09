@@ -8,7 +8,7 @@ import { TradeFormModal } from "@/components/trades/trade-form-modal";
 import { MT5ImportDialog } from "@/components/trades/mt5-import-dialog";
 import { CuanCardModal } from "@/components/share/cuan-card-modal";
 import { SampleTrade, generateSampleTrades } from "@/lib/sample-data";
-import { fetchTradesClient, fetchAccountsClient, saveTradeClient } from "@/lib/client-api";
+import { fetchTradesClient, fetchAccountsClient, saveTradeClient, deleteTradeClient } from "@/lib/client-api";
 import { MarketTicker } from "@/components/market/market-ticker";
 
 import { usePathname } from "next/navigation";
@@ -22,6 +22,7 @@ interface AppShellContextValue {
   openImportModal: () => void;
   openCuanCardModal: () => void;
   handleSaveTrade: (tradeData: any) => Promise<void>;
+  handleDeleteTrade: (tradeId: string) => Promise<void>;
   handleImportComplete: (importedTrades: SampleTrade[]) => void;
   refreshAccounts: () => void;
 }
@@ -47,16 +48,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isImportModalOpen, setIsImportModalOpen] = React.useState(false);
   const [isCuanCardModalOpen, setIsCuanCardModalOpen] = React.useState(false);
 
+  // Restore saved account from localStorage on initial render
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem("jurnal_cuan_selected_account");
+      if (saved) {
+        setSelectedAccountId(saved);
+      }
+    } catch {}
+  }, []);
+
+  const handleSelectAccount = React.useCallback((id: string) => {
+    setSelectedAccountId(id);
+    try {
+      localStorage.setItem("jurnal_cuan_selected_account", id);
+    } catch {}
+  }, []);
+
   const loadAccounts = React.useCallback(async () => {
     try {
       const fetchedAccounts = await fetchAccountsClient();
       if (fetchedAccounts && fetchedAccounts.length > 0) {
         setAccounts(fetchedAccounts);
         setSelectedAccountId((prev) => {
-          if (!prev || !fetchedAccounts.some((a: any) => a.id === prev)) {
-            return fetchedAccounts[0].id;
+          const stored = typeof window !== "undefined" ? localStorage.getItem("jurnal_cuan_selected_account") : null;
+          if (stored && (stored === "all" || fetchedAccounts.some((a: any) => a.id === stored))) {
+            return stored;
           }
-          return prev;
+          if (prev && (prev === "all" || fetchedAccounts.some((a: any) => a.id === prev))) {
+            return prev;
+          }
+          return fetchedAccounts[0].id;
         });
       }
     } catch (e) {
@@ -83,6 +105,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const handleSaveTrade = async (tradeData: any) => {
     const saved = await saveTradeClient(tradeData);
     setTrades((prev) => [saved, ...prev]);
+    // Synchronize accounts so currentBalance updates immediately in state
+    await loadAccounts();
+  };
+
+  const handleDeleteTrade = async (tradeId: string) => {
+    setTrades((prev) => prev.filter((t) => t.id !== tradeId && t.ticketId !== tradeId));
+    await deleteTradeClient(tradeId);
+    // Synchronize accounts so currentBalance updates immediately in state
+    await loadAccounts();
   };
 
   const handleImportComplete = (imported: SampleTrade[]) => {
@@ -110,11 +141,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           trades: activeTrades,
           accounts,
           selectedAccountId,
-          setSelectedAccountId,
+          setSelectedAccountId: handleSelectAccount,
           openNewTradeModal: () => setIsTradeModalOpen(true),
           openImportModal: () => setIsImportModalOpen(true),
           openCuanCardModal: () => setIsCuanCardModalOpen(true),
           handleSaveTrade,
+          handleDeleteTrade,
           handleImportComplete,
           refreshAccounts: loadAccounts,
         }}
@@ -132,11 +164,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         trades: activeTrades,
         accounts,
         selectedAccountId,
-        setSelectedAccountId,
+        setSelectedAccountId: handleSelectAccount,
         openNewTradeModal: () => setIsTradeModalOpen(true),
         openImportModal: () => setIsImportModalOpen(true),
         openCuanCardModal: () => setIsCuanCardModalOpen(true),
         handleSaveTrade,
+        handleDeleteTrade,
         handleImportComplete,
         refreshAccounts: loadAccounts,
       }}
@@ -153,7 +186,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Header
             accounts={accounts}
             selectedAccountId={selectedAccountId}
-            onSelectAccount={setSelectedAccountId}
+            onSelectAccount={handleSelectAccount}
             onOpenNewTradeModal={() => setIsTradeModalOpen(true)}
           />
 

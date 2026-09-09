@@ -189,27 +189,7 @@ export function Header({
           <span>{currentTime || "Loading WIB..."}</span>
         </div>
 
-        {/* Quick Add Trade Button */}
-        <Button
-          onClick={onOpenNewTradeModal}
-          size="sm"
-          aria-label="Catat Transaksi Trade Baru"
-          className="gap-1.5 shadow-md shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold"
-        >
-          <Plus className="h-3.5 w-3.5 stroke-[3]" />
-          <span className="hidden sm:inline">Catat Trade</span>
-          <span className="sm:hidden">Trade</span>
-        </Button>
 
-        {/* Live Share Portfolio Quick Button */}
-        <Link
-          href="/share-settings"
-          title="Live Share Portfolio"
-          aria-label="Pengaturan Live Share Portfolio"
-          className="h-8 w-8 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-center text-emerald-400 hover:bg-slate-800 hover:border-emerald-500/50 transition-colors"
-        >
-          <Shield className="h-4 w-4" />
-        </Link>
 
         {/* Auth0 Login / User Profile Menu */}
         {!isAuthLoading && (

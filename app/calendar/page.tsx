@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Plus, Upload, Share2 } from "lucide-react";
 
 export default function CalendarPage() {
-  const { trades, openNewTradeModal, openImportModal, openCuanCardModal } = useAppShell();
+  const { trades, accounts, selectedAccountId, openNewTradeModal, openCuanCardModal } = useAppShell();
+  const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
+  const accountCurrency = activeAccount?.currency || "USD";
 
   return (
     <div className="space-y-6">
@@ -32,28 +34,18 @@ export default function CalendarPage() {
           </Button>
 
           <Button
-            variant="outline"
-            size="sm"
-            onClick={openImportModal}
-            className="text-xs gap-1.5"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            <span>Import MT5</span>
-          </Button>
-
-          <Button
             size="sm"
             onClick={openNewTradeModal}
             className="text-xs gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold"
           >
             <Plus className="h-3.5 w-3.5 stroke-[3]" />
-            <span>Catat Trade</span>
+            <span>Catat Transaksi</span>
           </Button>
         </div>
       </div>
 
       {/* Calendar Component */}
-      <PnLCalendar trades={trades} onOpenNewTrade={openNewTradeModal} />
+      <PnLCalendar trades={trades} currency={accountCurrency} onOpenNewTrade={openNewTradeModal} />
     </div>
   );
 }

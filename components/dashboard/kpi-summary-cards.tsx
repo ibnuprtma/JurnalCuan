@@ -1,16 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { formatCurrency, formatSignedCurrency, formatPercent, cn } from "@/lib/utils";
+import { formatCurrency, formatSignedCurrency, cn } from "@/lib/utils";
 import { SampleTrade } from "@/lib/sample-data";
-import { TrendingUp, TrendingDown, Target, Zap, ShieldAlert, Award, Flame } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ArrowDownLeft, ArrowUpRight, ReceiptText, Pencil } from "lucide-react";
 
 interface KPISummaryCardsProps {
   trades: SampleTrade[];
   initialBalance?: number;
+  currency?: string;
+  onOpenEditBalance?: () => void;
 }
 
-export function KPISummaryCards({ trades, initialBalance = 10000 }: KPISummaryCardsProps) {
+export function KPISummaryCards({
+  trades,
+  initialBalance = 10000,
+  currency = "USD",
+  onOpenEditBalance,
+}: KPISummaryCardsProps) {
   const stats = React.useMemo(() => {
     const totalTrades = trades.length;
     const winningTrades = trades.filter((t) => t.netPnL > 0);
@@ -20,165 +27,125 @@ export function KPISummaryCards({ trades, initialBalance = 10000 }: KPISummaryCa
     const grossProfit = winningTrades.reduce((acc, t) => acc + t.netPnL, 0);
     const grossLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.netPnL, 0));
 
-    const winRate = totalTrades > 0 ? (winningTrades.length / totalTrades) * 100 : 0;
-    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 99.0 : 0;
     const pctGain = initialBalance > 0 ? ((netPnL / initialBalance) * 100).toFixed(2) : "0.00";
-
-    const avgRR =
-      totalTrades > 0
-        ? trades.reduce((acc, t) => acc + t.riskRewardRatio, 0) / totalTrades
-        : 0;
-
-    // Consecutive wins / losses streak
-    let maxWinStreak = 0;
-    let maxLossStreak = 0;
-    let currentWinStreak = 0;
-    let currentLossStreak = 0;
-
-    // Ordered chronologically
-    const chronological = [...trades].sort(
-      (a, b) => new Date(a.openTime).getTime() - new Date(b.openTime).getTime()
-    );
-
-    chronological.forEach((t) => {
-      if (t.netPnL > 0) {
-        currentWinStreak++;
-        currentLossStreak = 0;
-        if (currentWinStreak > maxWinStreak) maxWinStreak = currentWinStreak;
-      } else if (t.netPnL < 0) {
-        currentLossStreak++;
-        currentWinStreak = 0;
-        if (currentLossStreak > maxLossStreak) maxLossStreak = currentLossStreak;
-      }
-    });
 
     return {
       netPnL,
+      grossProfit,
+      grossLoss,
       pctGain,
       totalTrades,
-      winRate,
-      profitFactor,
-      avgRR,
-      maxWinStreak,
-      maxLossStreak,
       winningCount: winningTrades.length,
       losingCount: losingTrades.length,
     };
   }, [trades, initialBalance]);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-      {/* 1. Total Net P&L with % Gain */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 1. Saldo Bersih / Net Cuan */}
+      <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between shadow-xl">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Total Net Cuan</span>
+          <span className="text-xs uppercase font-bold text-slate-400">Saldo Bersih (Net Cuan)</span>
           <div
             className={cn(
-              "h-6 w-6 rounded-lg flex items-center justify-center",
+              "h-8 w-8 rounded-xl flex items-center justify-center",
               stats.netPnL >= 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
             )}
           >
-            {stats.netPnL >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+            {stats.netPnL >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
           </div>
         </div>
-        <div className="mt-2">
+        <div className="mt-3">
           <div
             className={cn(
-              "text-xl font-extrabold font-mono truncate",
+              "text-2xl font-extrabold font-mono truncate",
               stats.netPnL >= 0 ? "text-emerald-400" : "text-rose-400"
             )}
           >
-            {formatSignedCurrency(stats.netPnL)}
+            {formatSignedCurrency(stats.netPnL, currency)}
           </div>
-          <div className="flex items-center gap-1.5 mt-1">
-            <span
-              className={cn(
-                "text-[10px] font-bold font-mono px-1.5 py-0.5 rounded border",
-                stats.netPnL >= 0
-                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                  : "bg-rose-500/15 text-rose-300 border-rose-500/30"
-              )}
-            >
-              {stats.netPnL >= 0 ? `+${stats.pctGain}%` : `${stats.pctGain}%`}
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium">Gain/Loss</span>
-          </div>
-        </div>
-        <div className="text-[10px] text-slate-400 mt-2">{stats.totalTrades} Total Eksekusi</div>
-      </div>
+          <div className="flex items-center justify-between gap-1.5 mt-1.5">
+            <div className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "text-[10px] font-bold font-mono px-2 py-0.5 rounded border",
+                  stats.netPnL >= 0
+                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                    : "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                )}
+              >
+                {stats.netPnL >= 0 ? `+${stats.pctGain}%` : `${stats.pctGain}%`}
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium">Return</span>
+            </div>
 
-      {/* 2. Win Rate */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Win Rate</span>
-          <div className="h-6 w-6 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
-            <Target className="h-3.5 w-3.5" />
+            {onOpenEditBalance && (
+              <button
+                type="button"
+                onClick={onOpenEditBalance}
+                title="Klik untuk ubah modal saldo awal"
+                className="text-[10px] text-slate-400 hover:text-emerald-400 flex items-center gap-1 font-mono transition-colors cursor-pointer bg-slate-950/60 hover:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-800"
+              >
+                <span>Modal: {formatCurrency(initialBalance, currency)}</span>
+                <Pencil className="h-2.5 w-2.5 text-emerald-400" />
+              </button>
+            )}
           </div>
-        </div>
-        <div className="text-xl font-extrabold text-white font-mono mt-2">
-          {stats.winRate.toFixed(1)}%
-        </div>
-        <div className="text-[10px] text-slate-400 mt-1">
-          {stats.winningCount}W • {stats.losingCount}L
         </div>
       </div>
 
-      {/* 3. Profit Factor */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between">
+      {/* 2. Total Pemasukan / Cuan */}
+      <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between shadow-xl">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Profit Factor</span>
-          <div className="h-6 w-6 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
-            <Zap className="h-3.5 w-3.5" />
+          <span className="text-xs uppercase font-bold text-slate-400">Total Pemasukan (Cuan)</span>
+          <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+            <ArrowDownLeft className="h-4 w-4" />
           </div>
         </div>
-        <div className="text-xl font-extrabold text-white font-mono mt-2">
-          {stats.profitFactor >= 99 ? "MAX" : stats.profitFactor.toFixed(2)}
-        </div>
-        <div className="text-[10px] text-slate-400 mt-1">
-          {stats.profitFactor >= 2 ? "Target Institusi" : stats.profitFactor >= 1 ? "Profitabel" : "Evaluasi SL"}
+        <div className="mt-3">
+          <div className="text-2xl font-extrabold font-mono text-emerald-400 truncate">
+            {stats.grossProfit > 0 ? `+${formatCurrency(stats.grossProfit, currency)}` : formatCurrency(0, currency)}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-1.5 font-medium">
+            {stats.winningCount} transaksi profit
+          </div>
         </div>
       </div>
 
-      {/* 4. Average Risk:Reward */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between">
+      {/* 3. Total Pengeluaran / Boncos */}
+      <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between shadow-xl">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Rata-Rata R:R</span>
-          <div className="h-6 w-6 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
-            <Award className="h-3.5 w-3.5" />
+          <span className="text-xs uppercase font-bold text-slate-400">Total Pengeluaran (Boncos)</span>
+          <div className="h-8 w-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
+            <ArrowUpRight className="h-4 w-4" />
           </div>
         </div>
-        <div className="text-xl font-extrabold text-white font-mono mt-2">
-          1:{stats.avgRR.toFixed(2)}
+        <div className="mt-3">
+          <div className="text-2xl font-extrabold font-mono text-rose-400 truncate">
+            {stats.grossLoss > 0 ? `-${formatCurrency(stats.grossLoss, currency)}` : formatCurrency(0, currency)}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-1.5 font-medium">
+            {stats.losingCount} transaksi loss
+          </div>
         </div>
-        <div className="text-[10px] text-slate-400 mt-1">Target Min 1:1.5</div>
       </div>
 
-      {/* 5. Max Win Streak */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between">
+      {/* 4. Total Transaksi Catatan */}
+      <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between shadow-xl">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Win Streak</span>
-          <div className="h-6 w-6 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-            <Flame className="h-3.5 w-3.5" />
+          <span className="text-xs uppercase font-bold text-slate-400">Total Catatan</span>
+          <div className="h-8 w-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+            <ReceiptText className="h-4 w-4" />
           </div>
         </div>
-        <div className="text-xl font-extrabold text-emerald-400 font-mono mt-2">
-          {stats.maxWinStreak} <span className="text-xs font-normal text-slate-400">Trades</span>
-        </div>
-        <div className="text-[10px] text-slate-400 mt-1">Kemenangan Beruntun</div>
-      </div>
-
-      {/* 6. Max Drawdown Streak */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] uppercase font-bold text-slate-400">Max Loss Streak</span>
-          <div className="h-6 w-6 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
-            <ShieldAlert className="h-3.5 w-3.5" />
+        <div className="mt-3">
+          <div className="text-2xl font-extrabold font-mono text-white">
+            {stats.totalTrades}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-1.5 font-medium">
+            Riwayat transaksi tercatat
           </div>
         </div>
-        <div className="text-xl font-extrabold text-rose-400 font-mono mt-2">
-          {stats.maxLossStreak} <span className="text-xs font-normal text-slate-400">Trades</span>
-        </div>
-        <div className="text-[10px] text-slate-400 mt-1">Evaluasi Risiko</div>
       </div>
     </div>
   );

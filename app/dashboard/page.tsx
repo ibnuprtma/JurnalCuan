@@ -18,7 +18,9 @@ import {
   TrendingDown,
   ArrowRight,
   Sparkles,
+  Wallet,
 } from "lucide-react";
+import { EditBalanceModal } from "@/components/tools/edit-balance-modal";
 
 // Dynamic import heavy Recharts component to avoid initial render-blocking & forced reflow
 const EquityCurveChart = dynamic(
@@ -53,7 +55,8 @@ const MarketSessionsClock = dynamic(
 );
 
 export default function DashboardPage() {
-  const { trades, accounts, selectedAccountId, openNewTradeModal, openImportModal, openCuanCardModal } = useAppShell();
+  const { trades, accounts, selectedAccountId, openNewTradeModal, openCuanCardModal, refreshAccounts } = useAppShell();
+  const [isEditBalanceOpen, setIsEditBalanceOpen] = React.useState(false);
 
   const recentTrades = React.useMemo(() => {
     return [...trades]
@@ -61,9 +64,10 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [trades]);
 
-  // Determine base initial balance for percentage calculations
+  // Determine base initial balance and currency for calculations
   const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
   const initialBaseBalance = activeAccount?.initialBalance || activeAccount?.currentBalance || 10000;
+  const accountCurrency = activeAccount?.currency || "USD";
 
   return (
     <div className="space-y-6">
@@ -82,6 +86,16 @@ export default function DashboardPage() {
 
         {/* Quick Action Buttons */}
         <div className="relative z-10 flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditBalanceOpen(true)}
+            className="gap-1.5 text-xs bg-slate-900/80 border-slate-700 hover:border-emerald-500/40 text-slate-200"
+          >
+            <Wallet className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Ubah Modal Awal</span>
+          </Button>
+
           <Link href="/share-settings">
             <Button
               variant="outline"
@@ -104,143 +118,134 @@ export default function DashboardPage() {
           </Button>
 
           <Button
-            variant="outline"
-            size="sm"
-            onClick={openImportModal}
-            className="gap-1.5 text-xs bg-slate-900/80 border-slate-700 hover:border-emerald-500/40"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            <span>Import MT5</span>
-          </Button>
-
-          <Button
             size="sm"
             onClick={openNewTradeModal}
             className="gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20"
           >
             <Plus className="h-3.5 w-3.5 stroke-[3]" />
-            <span>Catat Trade</span>
+            <span>Catat Transaksi</span>
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards (with % gain calculation) */}
-      <KPISummaryCards trades={trades} initialBalance={initialBaseBalance} />
+      {/* KPI Cards (with % gain calculation & edit modal trigger) */}
+      <KPISummaryCards
+        trades={trades}
+        initialBalance={initialBaseBalance}
+        currency={accountCurrency}
+        onOpenEditBalance={() => setIsEditBalanceOpen(true)}
+      />
 
-      {/* Main Grid: Calendar & Equity Curve */}
-      <div className="space-y-6">
-        {/* Interactive P&L Calendar (Core Focus) */}
-        <PnLCalendar trades={trades} onOpenNewTrade={openNewTradeModal} />
+      {/* 1. Interactive P&L Calendar (Full Width) */}
+      <PnLCalendar trades={trades} currency={accountCurrency} onOpenNewTrade={openNewTradeModal} />
 
-        {/* Bottom Split: Equity Curve & Recent Trades */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Equity Curve (2 Cols) */}
-          <div className="lg:col-span-2">
-            <EquityCurveChart trades={trades} initialBalance={initialBaseBalance} />
-          </div>
+      {/* 2. Split Row: Equity Curve (2 Cols) & Recent Trades (1 Col) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Equity Curve Chart */}
+        <div className="lg:col-span-2">
+          <EquityCurveChart trades={trades} initialBalance={initialBaseBalance} currency={accountCurrency} />
+        </div>
 
-          {/* Recent Trades Widget (1 Col) */}
-          <div className="rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-                <h3 className="text-base font-bold text-white">Transaksi Terakhir</h3>
-                <Link
-                  href="/trades"
-                  className="text-xs font-semibold text-emerald-400 hover:underline flex items-center gap-1"
-                >
-                  Lihat Semua <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
-
-              <div className="space-y-2 mt-3">
-                {recentTrades.length === 0 ? (
-                  <div className="py-8 text-center text-slate-500 text-xs">
-                    Belum ada data trade. Mulai dengan mencatat trade pertama kamu!
-                  </div>
-                ) : (
-                  recentTrades.map((trade) => {
-                    const isWin = trade.netPnL > 0;
-                    const isLoss = trade.netPnL < 0;
-                    const targetAccount = accounts.find((a) => a.id === trade.accountId) || activeAccount;
-                    const baseBalance = targetAccount?.initialBalance || targetAccount?.currentBalance || 10000;
-                    const pctGain = ((trade.netPnL / baseBalance) * 100).toFixed(2);
-
-                    return (
-                      <div
-                        key={trade.id}
-                        className="p-3 rounded-2xl border border-slate-800/60 bg-slate-950/50 flex items-center justify-between hover:border-slate-700 transition-colors"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className={cn(
-                              "h-8 w-8 rounded-xl flex items-center justify-center font-bold text-xs",
-                              trade.direction === "BUY"
-                                ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
-                                : "bg-purple-500/10 text-purple-400 border border-purple-500/30"
-                            )}
-                          >
-                            {trade.direction}
-                          </div>
-                          <div>
-                            <div className="font-bold text-xs text-white">{trade.pair}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">{trade.lotSize} Lot</div>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span
-                              className={cn(
-                                "font-extrabold text-xs font-mono",
-                                isWin ? "text-emerald-400" : isLoss ? "text-rose-400" : "text-slate-400"
-                              )}
-                            >
-                              {formatSignedCurrency(trade.netPnL)}
-                            </span>
-                            <span
-                              className={cn(
-                                "text-[10px] px-1.5 py-0.5 rounded font-mono font-bold border",
-                                isWin
-                                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                                  : isLoss
-                                  ? "bg-rose-500/15 text-rose-300 border-rose-500/30"
-                                  : "bg-slate-800 text-slate-400 border-slate-700"
-                              )}
-                            >
-                              {trade.netPnL >= 0 ? `+${pctGain}%` : `${pctGain}%`}
-                            </span>
-                          </div>
-                          <div
-                            className={cn(
-                              "text-[10px] font-mono mt-0.5",
-                              trade.netPips >= 0 ? "text-emerald-400" : "text-red-400"
-                            )}
-                          >
-                            {trade.netPips >= 0 ? `+${trade.netPips}` : trade.netPips} pips
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+        {/* Recent Trades Box */}
+        <div className="rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl flex flex-col justify-between space-y-4">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span>Catatan Transaksi Terkini</span>
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  {recentTrades.length}
+                </Badge>
+              </h3>
+              <Link
+                href="/trades"
+                className="text-xs font-semibold text-emerald-400 hover:underline flex items-center gap-1"
+              >
+                Lihat Semua <ArrowRight className="h-3 w-3" />
+              </Link>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openNewTradeModal}
-              className="w-full text-xs gap-1.5 border-dashed border-slate-700 hover:border-emerald-500/50 text-slate-300"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Tambah Transaksi Baru</span>
-            </Button>
+            <div className="space-y-2 mt-3">
+              {recentTrades.length === 0 ? (
+                <div className="py-8 text-center text-slate-500 text-xs rounded-2xl border border-dashed border-slate-800">
+                  Belum ada transaksi. Klik &quot;Catat Transaksi&quot; untuk memulai.
+                </div>
+              ) : (
+                recentTrades.map((trade) => {
+                  const isWin = trade.netPnL > 0;
+                  const isLoss = trade.netPnL < 0;
+                  const dateObj = new Date(trade.openTime);
+                  const timeFormatted = new Intl.DateTimeFormat("id-ID", {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "Asia/Jakarta",
+                  }).format(dateObj);
+
+                  const notes = trade.notes || trade.strategyName || "Catatan Transaksi";
+
+                  return (
+                    <div
+                      key={trade.id}
+                      className="p-3 rounded-2xl border border-slate-800/60 bg-slate-950/50 flex items-center justify-between hover:border-slate-700 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                        <div
+                          className={cn(
+                            "h-8 w-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0",
+                            isWin
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                              : "bg-rose-500/10 text-rose-400 border border-rose-500/30"
+                          )}
+                        >
+                          {isWin ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-xs text-white truncate">{notes}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{timeFormatted}</div>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span
+                          className={cn(
+                            "font-bold text-xs font-mono",
+                            isWin ? "text-emerald-400" : isLoss ? "text-rose-400" : "text-slate-400"
+                          )}
+                        >
+                          {formatSignedCurrency(trade.netPnL, accountCurrency)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openNewTradeModal}
+            className="w-full text-xs gap-1.5 border-dashed border-slate-700 hover:border-emerald-500/50 text-slate-300"
+          >
+            <Plus className="h-3 w-3" />
+            <span>Tambah Transaksi Baru</span>
+          </Button>
         </div>
       </div>
 
-      {/* Visual Forex Market Sessions Clock */}
+      {/* 3. Visual Forex Market Sessions Clock (Full Width at Bottom) */}
       <MarketSessionsClock />
+
+      {/* Edit Initial Balance Modal */}
+      <EditBalanceModal
+        isOpen={isEditBalanceOpen}
+        onClose={() => setIsEditBalanceOpen(false)}
+        accounts={accounts}
+        currentAccountId={selectedAccountId}
+        onBalanceUpdated={refreshAccounts}
+      />
     </div>
   );
 }

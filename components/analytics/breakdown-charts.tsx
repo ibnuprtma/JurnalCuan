@@ -10,101 +10,102 @@ import {
   Tooltip,
   Cell,
   CartesianGrid,
+  Legend,
 } from "recharts";
-import { formatCurrency, formatSignedCurrency } from "@/lib/utils";
+import { formatCurrency, formatSignedCurrency, getCurrencySymbol } from "@/lib/utils";
 import { SampleTrade } from "@/lib/sample-data";
 
 interface BreakdownChartsProps {
   trades: SampleTrade[];
+  currency?: string;
 }
 
-export function BreakdownCharts({ trades }: BreakdownChartsProps) {
-  // Breakdown by Pair
-  const pairData = React.useMemo(() => {
-    const map = new Map<string, { pair: string; pnl: number; trades: number }>();
+const DAY_NAMES = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+
+export function BreakdownCharts({ trades, currency = "USD" }: BreakdownChartsProps) {
+  // 1. Day of Week Breakdown
+  const dayOfWeekData = React.useMemo(() => {
+    const dayMap = new Map<number, { dayIndex: number; name: string; pnl: number; count: number }>();
+    for (let i = 0; i < 7; i++) {
+      dayMap.set(i, { dayIndex: i, name: DAY_NAMES[i], pnl: 0, count: 0 });
+    }
+
     trades.forEach((t) => {
-      const cur = map.get(t.pair) || { pair: t.pair, pnl: 0, trades: 0 };
+      const d = new Date(t.openTime);
+      const dayIdx = d.getDay();
+      const cur = dayMap.get(dayIdx)!;
       cur.pnl += t.netPnL;
-      cur.trades += 1;
-      map.set(t.pair, cur);
+      cur.count += 1;
     });
 
-    return Array.from(map.values())
-      .sort((a, b) => b.pnl - a.pnl)
-      .map((item) => ({
-        ...item,
+    // Reorder starting Monday (Senin) to Sunday (Minggu)
+    const reorderedDays = [1, 2, 3, 4, 5, 6, 0];
+    return reorderedDays.map((idx) => {
+      const item = dayMap.get(idx)!;
+      return {
+        name: item.name,
         pnl: Number(item.pnl.toFixed(2)),
-      }));
+        count: item.count,
+      };
+    });
   }, [trades]);
 
-  // Breakdown by Session
-  const sessionData = React.useMemo(() => {
-    const map = new Map<string, { session: string; pnl: number; trades: number }>();
-    trades.forEach((t) => {
-      const sessionLabel =
-        t.session === "OVERLAP"
-          ? "London-NY Overlap"
-          : t.session === "LONDON"
-          ? "London Session"
-          : t.session === "NEW_YORK"
-          ? "New York Session"
-          : "Asian Session";
+  // 2. Cashflow Comparison (Pemasukan vs Pengeluaran)
+  const cashflowComparisonData = React.useMemo(() => {
+    const totalProfit = trades.filter((t) => t.netPnL > 0).reduce((acc, t) => acc + t.netPnL, 0);
+    const totalLoss = Math.abs(trades.filter((t) => t.netPnL < 0).reduce((acc, t) => acc + t.netPnL, 0));
 
-      const cur = map.get(sessionLabel) || { session: sessionLabel, pnl: 0, trades: 0 };
-      cur.pnl += t.netPnL;
-      cur.trades += 1;
-      map.set(sessionLabel, cur);
-    });
-
-    return Array.from(map.values()).map((item) => ({
-      ...item,
-      pnl: Number(item.pnl.toFixed(2)),
-    }));
-  }, [trades]);
-
-  // Breakdown by Strategy
-  const strategyData = React.useMemo(() => {
-    const map = new Map<string, { strategy: string; pnl: number; trades: number }>();
-    trades.forEach((t) => {
-      const cur = map.get(t.strategyName) || { strategy: t.strategyName, pnl: 0, trades: 0 };
-      cur.pnl += t.netPnL;
-      cur.trades += 1;
-      map.set(t.strategyName, cur);
-    });
-
-    return Array.from(map.values())
-      .sort((a, b) => b.pnl - a.pnl)
-      .map((item) => ({
-        ...item,
-        pnl: Number(item.pnl.toFixed(2)),
-      }));
+    return [
+      {
+        kategori: "Pemasukan (Cuan)",
+        nominal: Number(totalProfit.toFixed(2)),
+        fill: "#10b981",
+      },
+      {
+        kategori: "Pengeluaran (Boncos)",
+        nominal: Number(totalLoss.toFixed(2)),
+        fill: "#ef4444",
+      },
+    ];
   }, [trades]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* 1. Pair Breakdown */}
+      {/* 1. Day of Week Chart */}
       <div className="rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl space-y-3">
         <div>
-          <h3 className="text-base font-bold text-white">Performa per Pair Forex</h3>
-          <p className="text-xs text-slate-400">Total profit/loss yang dihasilkan dari setiap instrumen</p>
+          <h3 className="text-base font-bold text-white">Performa per Hari</h3>
+          <p className="text-xs text-slate-400">Akumulasi net cuan berdasarkan hari transaksi (Senin s/d Minggu)</p>
         </div>
 
         <div className="h-[220px] w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={pairData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <BarChart data={dayOfWeekData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="pair" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis
+                stroke="#64748b"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => {
+                  const sym = getCurrencySymbol(currency);
+                  if (currency === "IDR") {
+                    return v >= 1000000 ? `Rp${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `Rp${(v / 1000).toFixed(0)}k` : `Rp${v}`;
+                  }
+                  return `${sym}${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`;
+                }}
+              />
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
                       <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-2.5 shadow-xl text-xs font-mono">
-                        <div className="text-slate-200 font-bold font-sans">{data.pair}</div>
-                        <div className="text-slate-400 font-sans">{data.trades} Transaksi</div>
+                        <div className="text-slate-200 font-bold font-sans">{data.name}</div>
+                        <div className="text-slate-400 font-sans">{data.count} Transaksi</div>
                         <div className={`font-bold mt-1 ${data.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                          Net: {formatSignedCurrency(data.pnl)}
+                          Net: {formatSignedCurrency(data.pnl, currency)}
                         </div>
                       </div>
                     );
@@ -113,8 +114,8 @@ export function BreakdownCharts({ trades }: BreakdownChartsProps) {
                 }}
               />
               <Bar dataKey="pnl" radius={[6, 6, 0, 0]}>
-                {pairData.map((entry, index) => (
-                  <Cell key={`cell-pair-${index}`} fill={entry.pnl >= 0 ? "#10b981" : "#ef4444"} />
+                {dayOfWeekData.map((entry, index) => (
+                  <Cell key={`cell-day-${index}`} fill={entry.pnl >= 0 ? "#10b981" : "#ef4444"} />
                 ))}
               </Bar>
             </BarChart>
@@ -122,29 +123,40 @@ export function BreakdownCharts({ trades }: BreakdownChartsProps) {
         </div>
       </div>
 
-      {/* 2. Session Breakdown */}
+      {/* 2. Total Cashflow Comparison */}
       <div className="rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl space-y-3">
         <div>
-          <h3 className="text-base font-bold text-white">Performa per Sesi Trading</h3>
-          <p className="text-xs text-slate-400">Efektivitas hasil cuan pada jam market yang berbeda</p>
+          <h3 className="text-base font-bold text-white">Perbandingan Arus Kas</h3>
+          <p className="text-xs text-slate-400">Perbandingan total uang masuk (cuan) vs total uang keluar (boncos)</p>
         </div>
 
         <div className="h-[220px] w-full pt-2">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={sessionData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <BarChart data={cashflowComparisonData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="session" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+              <XAxis dataKey="kategori" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis
+                stroke="#64748b"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => {
+                  const sym = getCurrencySymbol(currency);
+                  if (currency === "IDR") {
+                    return v >= 1000000 ? `Rp${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `Rp${(v / 1000).toFixed(0)}k` : `Rp${v}`;
+                  }
+                  return `${sym}${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`;
+                }}
+              />
               <Tooltip
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
                       <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-2.5 shadow-xl text-xs font-mono">
-                        <div className="text-slate-200 font-bold font-sans">{data.session}</div>
-                        <div className="text-slate-400 font-sans">{data.trades} Transaksi</div>
-                        <div className={`font-bold mt-1 ${data.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                          Net: {formatSignedCurrency(data.pnl)}
+                        <div className="text-slate-200 font-bold font-sans">{data.kategori}</div>
+                        <div className="font-bold mt-1 text-white">
+                          {formatCurrency(data.nominal, currency)}
                         </div>
                       </div>
                     );
@@ -152,9 +164,9 @@ export function BreakdownCharts({ trades }: BreakdownChartsProps) {
                   return null;
                 }}
               />
-              <Bar dataKey="pnl" radius={[6, 6, 0, 0]}>
-                {sessionData.map((entry, index) => (
-                  <Cell key={`cell-session-${index}`} fill={entry.pnl >= 0 ? "#10b981" : "#ef4444"} />
+              <Bar dataKey="nominal" radius={[6, 6, 0, 0]}>
+                {cashflowComparisonData.map((entry, index) => (
+                  <Cell key={`cell-cf-${index}`} fill={entry.fill} />
                 ))}
               </Bar>
             </BarChart>

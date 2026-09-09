@@ -14,6 +14,7 @@ export interface AuthenticatedTrader {
     broker: string | null;
     accountType: string | null;
     currentBalance: number;
+    initialBalance: number;
     currency: string;
     isPublic: boolean;
     publicSlug: string | null;
@@ -108,6 +109,7 @@ export async function getCurrentUser(): Promise<AuthenticatedTrader | null> {
         name: a.name,
         broker: a.broker,
         accountType: a.accountType,
+        initialBalance: Number(a.initialBalance || a.currentBalance || 0),
         currentBalance: Number(a.currentBalance),
         currency: a.currency,
         isPublic: a.isPublic,

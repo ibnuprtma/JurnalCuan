@@ -94,7 +94,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { accountId, isPublic, hideDollarAmounts, publicSlug } = body;
+    const { accountId, isPublic, hideDollarAmounts, publicSlug, initialBalance, name, currency } = body;
 
     if (!accountId) {
       return NextResponse.json({ error: "accountId wajib disertakan" }, { status: 400 });
@@ -109,9 +109,20 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Akun tidak ditemukan" }, { status: 404 });
     }
 
+    const parsedInitialBalance =
+      initialBalance !== undefined && initialBalance !== null && !isNaN(parseFloat(initialBalance))
+        ? parseFloat(initialBalance)
+        : undefined;
+
+    const validCurrency = currency && typeof currency === "string" ? currency.trim().toUpperCase() : undefined;
+
     const updated = await prisma.tradingAccount.update({
       where: { id: accountId },
       data: {
+        name: name ? name.trim() : undefined,
+        currency: validCurrency,
+        initialBalance: parsedInitialBalance,
+        currentBalance: parsedInitialBalance !== undefined ? parsedInitialBalance : undefined,
         isPublic: typeof isPublic === "boolean" ? isPublic : undefined,
         hideDollarAmounts: typeof hideDollarAmounts === "boolean" ? hideDollarAmounts : undefined,
         publicSlug: publicSlug ? publicSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-") : undefined,
@@ -123,6 +134,9 @@ export async function PATCH(req: NextRequest) {
       account: {
         id: updated.id,
         name: updated.name,
+        currency: updated.currency,
+        initialBalance: Number(updated.initialBalance),
+        currentBalance: Number(updated.currentBalance),
         isPublic: updated.isPublic,
         hideDollarAmounts: updated.hideDollarAmounts,
         publicSlug: updated.publicSlug,

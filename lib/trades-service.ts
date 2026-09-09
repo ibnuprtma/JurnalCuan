@@ -33,6 +33,7 @@ export async function getAccounts(userId?: string) {
         name: a.name,
         broker: a.broker || "-",
         accountType: a.accountType,
+        initialBalance: Number(a.initialBalance || a.currentBalance || 0),
         currentBalance: Number(a.currentBalance),
         currency: a.currency,
         isPublic: a.isPublic,
@@ -62,6 +63,7 @@ export async function getAccounts(userId?: string) {
         name: newDefault.name,
         broker: newDefault.broker || "-",
         accountType: newDefault.accountType,
+        initialBalance: Number(newDefault.initialBalance),
         currentBalance: Number(newDefault.currentBalance),
         currency: newDefault.currency,
         isPublic: newDefault.isPublic,
@@ -78,6 +80,7 @@ export async function getAccounts(userId?: string) {
       name: "Personal Demo Account",
       broker: "-",
       accountType: "Demo",
+      initialBalance: 10000,
       currentBalance: 10000,
       currency: "USD",
       isPublic: false,
@@ -158,10 +161,10 @@ export async function getAllTrades(accountId?: string, userId?: string): Promise
 export async function createNewTrade(
   tradeData: {
     accountId: string;
-    pair: string;
-    direction: "BUY" | "SELL";
-    lotSize: number;
-    entryPrice: number;
+    pair?: string;
+    direction?: "BUY" | "SELL";
+    lotSize?: number;
+    entryPrice?: number;
     exitPrice?: number;
     stopLoss?: number;
     takeProfit?: number;
@@ -174,28 +177,47 @@ export async function createNewTrade(
     isNewsTrade?: boolean;
     commission?: number;
     swap?: number;
+    netPnL?: number;
   },
   userId?: string
 ) {
   const openTime = tradeData.openTime ? new Date(tradeData.openTime) : new Date();
-  const closeTime = tradeData.closeTime ? new Date(tradeData.closeTime) : new Date();
-  const exitPrice = tradeData.exitPrice || tradeData.entryPrice;
+  const closeTime = tradeData.closeTime ? new Date(tradeData.closeTime) : new Date(openTime);
+  const pair = (tradeData.pair || "CATATAN").toUpperCase();
+
+  // If netPnL is explicitly provided (simple entry mode)
+  let netPnL = tradeData.netPnL !== undefined ? Number(tradeData.netPnL) : 0;
+  let netPips = 0;
+  let realizedRR = 0;
+  let plannedRR = 0;
+
+  if (tradeData.netPnL === undefined && tradeData.entryPrice) {
+    const exitPrice = tradeData.exitPrice || tradeData.entryPrice;
+    const dir = tradeData.direction || "BUY";
+    netPips = calculatePips(pair, tradeData.entryPrice, exitPrice, dir);
+    const rr = calculateRiskReward(
+      tradeData.entryPrice,
+      exitPrice,
+      tradeData.stopLoss,
+      tradeData.takeProfit,
+      dir
+    );
+    plannedRR = rr.plannedRR || 0;
+    realizedRR = rr.realizedRR || 0;
+
+    const pipValue = pair.includes("XAU") ? 1.0 : pair.includes("JPY") ? 6.5 : 10.0;
+    const lot = tradeData.lotSize || 1.0;
+    const grossPnL = netPips * lot * pipValue;
+    const commission = tradeData.commission || 0;
+    const swap = tradeData.swap || 0;
+    netPnL = Number((grossPnL - commission + swap).toFixed(2));
+  }
+
+  const direction: "BUY" | "SELL" = tradeData.direction || (netPnL >= 0 ? "BUY" : "SELL");
+  const lotSize = tradeData.lotSize || 1.0;
+  const entryPrice = tradeData.entryPrice || 0.0;
+  const exitPrice = tradeData.exitPrice || entryPrice;
   const session = detectTradingSession(openTime);
-
-  const netPips = calculatePips(tradeData.pair, tradeData.entryPrice, exitPrice, tradeData.direction);
-  const { plannedRR, realizedRR } = calculateRiskReward(
-    tradeData.entryPrice,
-    exitPrice,
-    tradeData.stopLoss,
-    tradeData.takeProfit,
-    tradeData.direction
-  );
-
-  const pipValue = tradeData.pair.includes("XAU") ? 1.0 : tradeData.pair.includes("JPY") ? 6.5 : 10.0;
-  const grossPnL = netPips * tradeData.lotSize * pipValue;
-  const commission = tradeData.commission || 0;
-  const swap = tradeData.swap || 0;
-  const netPnL = Number((grossPnL - commission + swap).toFixed(2));
 
   let status: "WIN" | "LOSS" | "BREAK_EVEN" = "BREAK_EVEN";
   if (netPnL > 0) status = "WIN";
@@ -244,13 +266,13 @@ export async function createNewTrade(
       data: {
         accountId: targetAccountId,
         ticketId: `${Math.floor(10000000 + Math.random() * 90000000)}`,
-        pair: tradeData.pair.toUpperCase(),
-        direction: tradeData.direction,
+        pair,
+        direction,
         session,
         openTime,
         closeTime,
-        lotSize: tradeData.lotSize,
-        entryPrice: tradeData.entryPrice,
+        lotSize,
+        entryPrice,
         exitPrice,
         stopLoss: tradeData.stopLoss || 0,
         takeProfit: tradeData.takeProfit || 0,
@@ -264,6 +286,15 @@ export async function createNewTrade(
         isNewsTrade: tradeData.isNewsTrade || false,
       },
     });
+
+    try {
+      await prisma.tradingAccount.update({
+        where: { id: targetAccountId },
+        data: { currentBalance: { increment: netPnL } },
+      });
+    } catch (balErr) {
+      console.warn("Failed to increment account currentBalance:", balErr);
+    }
 
     return {
       id: created.id,
@@ -283,7 +314,7 @@ export async function createNewTrade(
       netPips: Number(created.netPips || 0),
       riskRewardRatio: Number(created.riskRewardRatio || 0),
       status: created.status as any,
-      strategyName: tradeData.strategyName || "SMC / Order Block",
+      strategyName: tradeData.strategyName || "Catatan Transaksi",
       emotionTag: created.emotionTag || undefined,
       mistakeTag: created.mistakeTag || undefined,
       notes: created.notes || undefined,
@@ -297,13 +328,13 @@ export async function createNewTrade(
     id: `trade-${Date.now()}`,
     accountId: targetAccountId || "default-account",
     ticketId: `${Math.floor(10000000 + Math.random() * 90000000)}`,
-    pair: tradeData.pair.toUpperCase(),
-    direction: tradeData.direction,
+    pair,
+    direction,
     session,
     openTime: openTime.toISOString(),
     closeTime: closeTime.toISOString(),
-    lotSize: tradeData.lotSize,
-    entryPrice: tradeData.entryPrice,
+    lotSize,
+    entryPrice,
     exitPrice,
     stopLoss: tradeData.stopLoss || 0,
     takeProfit: tradeData.takeProfit || 0,
@@ -311,7 +342,7 @@ export async function createNewTrade(
     netPips,
     riskRewardRatio: realizedRR || plannedRR || 0,
     status,
-    strategyName: tradeData.strategyName || "SMC / Order Block",
+    strategyName: tradeData.strategyName || "Catatan Transaksi",
     emotionTag: tradeData.emotionTag,
     mistakeTag: tradeData.mistakeTag,
     notes: tradeData.notes,
@@ -320,4 +351,42 @@ export async function createNewTrade(
 
   inMemoryTrades = [fallbackTrade, ...inMemoryTrades];
   return fallbackTrade;
+}
+
+export async function deleteTrade(tradeId: string, userId?: string): Promise<boolean> {
+  try {
+    let trade = null;
+    if (userId) {
+      trade = await prisma.trade.findFirst({
+        where: {
+          id: tradeId,
+          account: {
+            userId: userId,
+          },
+        },
+      });
+    } else {
+      trade = await prisma.trade.findUnique({
+        where: { id: tradeId },
+      });
+    }
+
+    if (trade) {
+      await prisma.trade.delete({ where: { id: trade.id } });
+      try {
+        await prisma.tradingAccount.update({
+          where: { id: trade.accountId },
+          data: { currentBalance: { decrement: Number(trade.netPnL) } },
+        });
+      } catch (balErr) {
+        console.warn("Failed to decrement account currentBalance:", balErr);
+      }
+      return true;
+    }
+  } catch (e) {
+    console.warn("DB deleteTrade fallback:", e);
+  }
+
+  inMemoryTrades = inMemoryTrades.filter((t) => t.id !== tradeId);
+  return true;
 }

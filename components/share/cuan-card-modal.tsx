@@ -5,6 +5,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogCloseButton
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatSignedCurrency } from "@/lib/utils";
 import { SampleTrade } from "@/lib/sample-data";
+import { useAppShell } from "@/components/layout/app-shell";
 import { Download, Sparkles, TrendingUp, TrendingDown, Share2, Copy, Check, Loader2 } from "lucide-react";
 import { toPng } from "html-to-image";
 
@@ -16,6 +17,10 @@ interface CuanCardModalProps {
 }
 
 export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal Account" }: CuanCardModalProps) {
+  const { accounts, selectedAccountId } = useAppShell();
+  const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
+  const currency = activeAccount?.currency || "USD";
+
   const [copied, setCopied] = React.useState(false);
   const [isDownloading, setIsDownloading] = React.useState(false);
   const [aspectRatio, setAspectRatio] = React.useState<"story" | "square">("story");
@@ -133,12 +138,14 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
                   netPnL >= 0 ? "text-emerald-400" : "text-rose-400"
                 }`}
               >
-                {formatSignedCurrency(netPnL)}
+                {formatSignedCurrency(netPnL, currency)}
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-xs text-slate-200">
-                <span className="text-emerald-400 font-bold font-mono">{winRate.toFixed(0)}% Win Rate</span>
+                <span className="text-emerald-400 font-bold font-mono">+{trades.filter(t => t.netPnL > 0).length} Cuan</span>
                 <span>•</span>
-                <span>{trades.length} Trades</span>
+                <span className="text-rose-400 font-bold font-mono">-{trades.filter(t => t.netPnL < 0).length} Boncos</span>
+                <span>•</span>
+                <span>{trades.length} Catatan</span>
               </div>
             </div>
 
@@ -150,9 +157,9 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
               </div>
               {topTrade && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Best Trade:</span>
+                  <span className="text-slate-400">Paling Cuan:</span>
                   <span className="font-bold text-emerald-400 font-mono">
-                    {topTrade.pair} ({formatSignedCurrency(topTrade.netPnL)})
+                    {topTrade.notes || topTrade.pair} ({formatSignedCurrency(topTrade.netPnL, currency)})
                   </span>
                 </div>
               )}

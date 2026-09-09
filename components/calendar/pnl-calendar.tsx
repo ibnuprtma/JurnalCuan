@@ -3,6 +3,7 @@
 import * as React from "react";
 import { formatCurrency, formatSignedCurrency, cn } from "@/lib/utils";
 import { SampleTrade } from "@/lib/sample-data";
+import { useAppShell } from "@/components/layout/app-shell";
 import { DayTradesDrawer } from "./day-trades-drawer";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar as CalendarIcon, Zap } from "lucide-react";
@@ -10,9 +11,14 @@ import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar as Calend
 interface PnLCalendarProps {
   trades: SampleTrade[];
   onOpenNewTrade?: () => void;
+  currency?: string;
 }
 
-export function PnLCalendar({ trades }: PnLCalendarProps) {
+export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: PnLCalendarProps) {
+  const { accounts, selectedAccountId } = useAppShell();
+  const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
+  const currency = propCurrency || activeAccount?.currency || "USD";
+
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
   const [selectedDay, setSelectedDay] = React.useState<Date | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = React.useState<boolean>(false);
@@ -61,10 +67,11 @@ export function PnLCalendar({ trades }: PnLCalendarProps) {
   }, [trades, year, month]);
 
   const totalMonthlyPnL = monthlyTrades.reduce((acc, t) => acc + t.netPnL, 0);
-  const winningTrades = monthlyTrades.filter((t) => t.netPnL > 0).length;
-  const losingTrades = monthlyTrades.filter((t) => t.netPnL < 0).length;
+  const winningTrades = monthlyTrades.filter((t) => t.netPnL > 0);
+  const losingTrades = monthlyTrades.filter((t) => t.netPnL < 0);
+  const monthlyProfit = winningTrades.reduce((acc, t) => acc + t.netPnL, 0);
+  const monthlyLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.netPnL, 0));
   const totalClosed = monthlyTrades.length;
-  const winRate = totalClosed > 0 ? (winningTrades / totalClosed) * 100 : 0;
 
   // Best Day and Worst Day calculation
   const { bestDay, worstDay, profitDaysCount, lossDaysCount } = React.useMemo(() => {
@@ -151,7 +158,7 @@ export function PnLCalendar({ trades }: PnLCalendarProps) {
               totalMonthlyPnL > 0 ? "text-emerald-400" : totalMonthlyPnL < 0 ? "text-rose-400" : "text-white"
             )}
           >
-            {formatSignedCurrency(totalMonthlyPnL)}
+            {formatSignedCurrency(totalMonthlyPnL, currency)}
           </div>
           <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-1">
             <span>{profitDaysCount} Hari Profit</span>
@@ -160,12 +167,18 @@ export function PnLCalendar({ trades }: PnLCalendarProps) {
           </div>
         </div>
 
-        {/* Win Rate */}
+        {/* Total Catatan Bulanan */}
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Win Rate Bulanan</div>
-          <div className="text-2xl font-extrabold text-white font-mono mt-1">{winRate.toFixed(1)}%</div>
-          <div className="text-[11px] text-slate-400 mt-1">
-            {winningTrades} Menang / {losingTrades} Kalah ({totalClosed} Total)
+          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Catatan Bulan Ini</div>
+          <div className="text-2xl font-extrabold text-white font-mono mt-1">{totalClosed} Catatan</div>
+          <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
+            <span className="text-emerald-400 font-bold">
+              {monthlyProfit > 0 ? `+${formatCurrency(monthlyProfit, currency)}` : formatCurrency(0, currency)}
+            </span>
+            <span>•</span>
+            <span className="text-rose-400 font-bold">
+              {monthlyLoss > 0 ? `-${formatCurrency(monthlyLoss, currency)}` : formatCurrency(0, currency)}
+            </span>
           </div>
         </div>
 
@@ -175,7 +188,7 @@ export function PnLCalendar({ trades }: PnLCalendarProps) {
             <TrendingUp className="h-3 w-3" /> Best Day
           </div>
           <div className="text-lg font-bold text-emerald-400 font-mono mt-1">
-            {bestDay ? formatSignedCurrency(bestDay.pnl) : "$0.00"}
+            {bestDay ? formatSignedCurrency(bestDay.pnl, currency) : formatCurrency(0, currency)}
           </div>
           <div className="text-[11px] text-slate-400 mt-1">{bestDay?.date || "Belum ada"}</div>
         </div>
@@ -186,7 +199,7 @@ export function PnLCalendar({ trades }: PnLCalendarProps) {
             <TrendingDown className="h-3 w-3" /> Worst Day
           </div>
           <div className="text-lg font-bold text-rose-400 font-mono mt-1">
-            {worstDay ? formatSignedCurrency(worstDay.pnl) : "$0.00"}
+            {worstDay ? formatSignedCurrency(worstDay.pnl, currency) : formatCurrency(0, currency)}
           </div>
           <div className="text-[11px] text-slate-400 mt-1">{worstDay?.date || "Belum ada"}</div>
         </div>
@@ -315,7 +328,7 @@ export function PnLCalendar({ trades }: PnLCalendarProps) {
                                   isProfit ? "text-emerald-400" : isLoss ? "text-rose-400" : "text-slate-400"
                                 )}
                               >
-                                {formatSignedCurrency(dayPnL)}
+                                {formatSignedCurrency(dayPnL, currency)}
                               </div>
                             ) : (
                               <div className="text-[10px] text-slate-600 font-mono">—</div>
@@ -340,7 +353,7 @@ export function PnLCalendar({ trades }: PnLCalendarProps) {
                     >
                       <div className="text-[10px] uppercase font-bold text-slate-400">Week {weekIndex + 1}</div>
                       <div className="font-mono font-extrabold text-xs sm:text-sm">
-                        {weeklyTrades.length > 0 ? formatSignedCurrency(weeklyPnL) : "—"}
+                        {weeklyTrades.length > 0 ? formatSignedCurrency(weeklyPnL, currency) : "—"}
                       </div>
                     </div>
                   </div>
@@ -357,6 +370,7 @@ export function PnLCalendar({ trades }: PnLCalendarProps) {
         onClose={() => setIsDrawerOpen(false)}
         date={selectedDay}
         trades={selectedDayTrades}
+        currency={currency}
       />
     </div>
   );

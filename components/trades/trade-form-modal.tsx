@@ -1,39 +1,54 @@
 "use client";
 
 import * as React from "react";
-import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogCloseButton, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogCloseButton,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { POPULAR_PAIRS, EMOTION_TAGS, MISTAKE_TAGS, DEFAULT_STRATEGIES, calculatePips, calculateRiskReward } from "@/lib/forex-utils";
-import { formatSignedCurrency } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Sparkles, Check, AlertTriangle, Layers } from "lucide-react";
+import { formatSignedCurrency, getCurrencySymbol, cn } from "@/lib/utils";
+import { TrendingUp, TrendingDown, Calendar, Wallet, FileText, Sparkles } from "lucide-react";
 
 interface TradeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaveTrade: (tradeData: any) => void;
   selectedAccountId?: string;
-  accounts?: Array<{ id: string; name: string; broker?: string | null }>;
+  accounts?: Array<{ id: string; name: string; broker?: string | null; currency?: string }>;
 }
 
-export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId, accounts = [] }: TradeFormModalProps) {
-  const [targetAccountId, setTargetAccountId] = React.useState<string>("");
-  const [pair, setPair] = React.useState<string>("XAUUSD");
-  const [direction, setDirection] = React.useState<"BUY" | "SELL">("BUY");
-  const [lotSize, setLotSize] = React.useState<string>("0.5");
-  const [entryPrice, setEntryPrice] = React.useState<string>("2480.00");
-  const [exitPrice, setExitPrice] = React.useState<string>("2492.50");
-  const [stopLoss, setStopLoss] = React.useState<string>("2474.00");
-  const [takeProfit, setTakeProfit] = React.useState<string>("2495.00");
-  const [strategy, setStrategy] = React.useState<string>("SMC / Order Block");
-  const [emotion, setEmotion] = React.useState<string>("Disciplined");
-  const [mistake, setMistake] = React.useState<string>("");
-  const [isNewsTrade, setIsNewsTrade] = React.useState<boolean>(false);
+export function TradeFormModal({
+  isOpen,
+  onClose,
+  onSaveTrade,
+  selectedAccountId,
+  accounts = [],
+}: TradeFormModalProps) {
+  const [transactionType, setTransactionType] = React.useState<"PROFIT" | "LOSS">("PROFIT");
+  const [amount, setAmount] = React.useState<string>("");
   const [notes, setNotes] = React.useState<string>("");
+  const [targetAccountId, setTargetAccountId] = React.useState<string>("");
+  const [dateTime, setDateTime] = React.useState<string>("");
 
-  // Sync initial account selection
+  // Initialize date to current local datetime
+  React.useEffect(() => {
+    if (isOpen) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      setDateTime(now.toISOString().slice(0, 16));
+      setAmount("");
+      setNotes("");
+      setTransactionType("PROFIT");
+    }
+  }, [isOpen]);
+
+  // Sync target account
   React.useEffect(() => {
     if (selectedAccountId && selectedAccountId !== "all") {
       setTargetAccountId(selectedAccountId);
@@ -42,45 +57,46 @@ export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId
     }
   }, [selectedAccountId, accounts, isOpen]);
 
-  // Live Calculated metrics
-  const calculatedMetrics = React.useMemo(() => {
-    const entry = parseFloat(entryPrice) || 0;
-    const exit = parseFloat(exitPrice) || 0;
-    const sl = parseFloat(stopLoss) || 0;
-    const tp = parseFloat(takeProfit) || 0;
-    const lot = parseFloat(lotSize) || 0;
+  const currentAccount =
+    accounts.find((a) => a.id === targetAccountId) ||
+    accounts.find((a) => a.id === selectedAccountId) ||
+    accounts[0];
+  const accountCurrency = currentAccount?.currency || "USD";
+  const symbol = getCurrencySymbol(accountCurrency);
 
-    if (entry > 0 && exit > 0 && lot > 0) {
-      const pips = calculatePips(pair, entry, exit, direction);
-      const pipMultiplier = pair.includes("XAU") ? 1.0 : pair.includes("JPY") ? 6.5 : 10.0;
-      const netPnL = Number((pips * lot * pipMultiplier).toFixed(2));
-      const { plannedRR, realizedRR } = calculateRiskReward(entry, exit, sl, tp, direction);
+  const presets =
+    accountCurrency === "IDR"
+      ? [
+          { val: 50000, label: "Rp 50rb" },
+          { val: 100000, label: "Rp 100rb" },
+          { val: 250000, label: "Rp 250rb" },
+          { val: 500000, label: "Rp 500rb" },
+          { val: 1000000, label: "Rp 1jt" },
+        ]
+      : [
+          { val: 25, label: `${symbol}25` },
+          { val: 50, label: `${symbol}50` },
+          { val: 100, label: `${symbol}100` },
+          { val: 250, label: `${symbol}250` },
+          { val: 500, label: `${symbol}500` },
+        ];
 
-      return { pips, netPnL, plannedRR, realizedRR };
-    }
-    return { pips: 0, netPnL: 0, plannedRR: null, realizedRR: null };
-  }, [pair, direction, lotSize, entryPrice, exitPrice, stopLoss, takeProfit]);
+  const numericAmount = parseFloat(amount) || 0;
+  const calculatedPnL = transactionType === "PROFIT" ? numericAmount : -numericAmount;
+
+  const handleQuickAmount = (val: number) => {
+    setAmount(val.toString());
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pair || !entryPrice || !lotSize) return;
-
-    const finalAccountId = targetAccountId || accounts[0]?.id || selectedAccountId;
+    if (numericAmount <= 0) return;
 
     onSaveTrade({
-      accountId: finalAccountId,
-      pair: pair.toUpperCase(),
-      direction,
-      lotSize: parseFloat(lotSize) || 0.1,
-      entryPrice: parseFloat(entryPrice),
-      exitPrice: parseFloat(exitPrice) || parseFloat(entryPrice),
-      stopLoss: parseFloat(stopLoss) || 0,
-      takeProfit: parseFloat(takeProfit) || 0,
-      strategyName: strategy,
-      emotionTag: emotion,
-      mistakeTag: mistake || undefined,
-      isNewsTrade,
-      notes: notes || undefined,
+      netPnL: calculatedPnL,
+      notes: notes.trim() || undefined,
+      openTime: dateTime ? new Date(dateTime).toISOString() : new Date().toISOString(),
+      accountId: targetAccountId || undefined,
     });
 
     onClose();
@@ -90,53 +106,142 @@ export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogCloseButton onClose={onClose} />
       <DialogHeader>
-        <DialogTitle>Catat Transaksi Baru</DialogTitle>
-        <DialogDescription>Input data eksekusi forex dan evaluasi psikologi trading kamu</DialogDescription>
+        <DialogTitle className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <span>Catat Transaksi Sederhana</span>
+        </DialogTitle>
+        <DialogDescription>
+          Catat hasil cuan (pemasukan) atau boncos (pengeluaran) transaksi harian kamu secara cepat
+        </DialogDescription>
       </DialogHeader>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Live Calculation Preview Banner */}
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-slate-800 flex items-center justify-between">
-          <div>
-            <div className="text-[10px] uppercase font-bold text-slate-400">Estimasi Hasil Cuan</div>
-            <div
-              className={`text-xl font-extrabold font-mono flex items-center gap-1.5 ${
-                calculatedMetrics.netPnL > 0
-                  ? "text-emerald-400"
-                  : calculatedMetrics.netPnL < 0
-                  ? "text-rose-400"
-                  : "text-slate-300"
-              }`}
+        {/* Account Selection */}
+        {accounts.length > 1 && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300">Pilih Akun Portofolio</label>
+            <select
+              value={targetAccountId}
+              onChange={(e) => setTargetAccountId(e.target.value)}
+              className="w-full h-10 rounded-xl border border-slate-800 bg-slate-950/60 px-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             >
-              {calculatedMetrics.netPnL > 0 ? (
-                <TrendingUp className="h-4 w-4" />
-              ) : calculatedMetrics.netPnL < 0 ? (
-                <TrendingDown className="h-4 w-4" />
-              ) : null}
-              {formatSignedCurrency(calculatedMetrics.netPnL)}
-            </div>
+              {accounts
+                .filter((a) => a.id !== "all")
+                .map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.name} ({acc.broker || "Forex"}) — {acc.currency || "USD"}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
+
+        {/* Transaction Type: PROFIT / LOSS Toggle */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setTransactionType("PROFIT")}
+            className={cn(
+              "h-12 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all border",
+              transactionType === "PROFIT"
+                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-lg shadow-emerald-500/10"
+                : "text-slate-400 hover:text-white hover:bg-slate-900 border-slate-800"
+            )}
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span>🟢 Cuan (Profit / +)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTransactionType("LOSS")}
+            className={cn(
+              "h-12 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all border",
+              transactionType === "LOSS"
+                ? "bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-lg shadow-rose-500/10"
+                : "text-slate-400 hover:text-white hover:bg-slate-900 border-slate-800"
+            )}
+          >
+            <TrendingDown className="h-4 w-4" />
+            <span>🔴 Boncos (Loss / -)</span>
+          </button>
+        </div>
+
+        {/* Amount Input */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-300">Nominal ({symbol})</label>
+          <div className="relative">
+            <span
+              className={cn(
+                "absolute left-3.5 top-1/2 -translate-y-1/2 font-mono font-bold select-none",
+                symbol.length > 1 ? "text-sm" : "text-lg",
+                transactionType === "PROFIT" ? "text-emerald-400" : "text-rose-400"
+              )}
+            >
+              {transactionType === "PROFIT" ? `+${symbol}` : `-${symbol}`}
+            </span>
+            <Input
+              type="number"
+              step="any"
+              min="0"
+              required
+              autoFocus
+              placeholder={accountCurrency === "IDR" ? "100000" : "0.00"}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className={cn(
+                "text-xl font-mono font-bold h-12 rounded-xl border-slate-800 bg-slate-950/60 focus:ring-2",
+                symbol.length > 1 ? "pl-14" : "pl-11",
+                transactionType === "PROFIT"
+                  ? "focus:ring-emerald-500/50 text-emerald-400"
+                  : "focus:ring-rose-500/50 text-rose-400"
+              )}
+            />
           </div>
 
-          <div className="text-right">
-            <div className="text-[10px] uppercase font-bold text-slate-400">Pips & Risk:Reward</div>
-            <div className="text-xs font-bold text-slate-200 font-mono">
-              {calculatedMetrics.pips > 0 ? `+${calculatedMetrics.pips}` : calculatedMetrics.pips} Pips • R:R 1:
-              {calculatedMetrics.realizedRR || calculatedMetrics.plannedRR || "1.0"}
-            </div>
+          {/* Quick presets */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-[10px] text-slate-500">Preset:</span>
+            {presets.map((p) => (
+              <button
+                key={p.val}
+                type="button"
+                onClick={() => handleQuickAmount(p.val)}
+                className="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-colors cursor-pointer"
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Account Selector Field */}
+        {/* Date & Time */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-slate-400" />
+            <span>Tanggal & Waktu</span>
+          </label>
+          <Input
+            type="datetime-local"
+            value={dateTime}
+            onChange={(e) => setDateTime(e.target.value)}
+            className="text-xs h-10 rounded-xl border-slate-800 bg-slate-950/60 text-slate-200"
+          />
+        </div>
+
+        {/* Account Selector (if multiple accounts) */}
         {accounts.length > 1 && (
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5 flex items-center gap-1.5">
-              <Layers className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Simpan ke Akun Trading</span>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <Wallet className="h-3.5 w-3.5 text-slate-400" />
+              <span>Akun Portofolio</span>
             </label>
             <select
               value={targetAccountId}
               onChange={(e) => setTargetAccountId(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+              className="w-full h-10 rounded-xl border border-slate-800 bg-slate-950/60 px-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             >
               {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
@@ -147,223 +252,59 @@ export function TradeFormModal({ isOpen, onClose, onSaveTrade, selectedAccountId
           </div>
         )}
 
-        {/* Pair & Direction Toggle */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">Pair Forex</label>
-            <div className="flex flex-wrap gap-1 mb-1.5">
-              {POPULAR_PAIRS.slice(0, 4).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPair(p)}
-                  className={`text-[10px] px-2 py-0.5 rounded-md font-mono transition-colors ${
-                    pair === p
-                      ? "bg-emerald-500 text-slate-950 font-bold"
-                      : "bg-slate-800 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-            <Input
-              value={pair}
-              onChange={(e) => setPair(e.target.value.toUpperCase())}
-              placeholder="e.g. XAUUSD, EURUSD"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1.5">Arah Posisi</label>
-            <div className="grid grid-cols-2 gap-2 h-10">
-              <Button
-                type="button"
-                variant={direction === "BUY" ? "default" : "outline"}
-                onClick={() => setDirection("BUY")}
-                className={`h-full ${
-                  direction === "BUY"
-                    ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20"
-                    : "border-slate-700 hover:border-slate-600 text-slate-300"
-                }`}
-              >
-                BUY (Long)
-              </Button>
-              <Button
-                type="button"
-                variant={direction === "SELL" ? "destructive" : "outline"}
-                onClick={() => setDirection("SELL")}
-                className={`h-full ${
-                  direction === "SELL"
-                    ? "bg-rose-500 hover:bg-rose-400 text-white font-bold shadow-md shadow-rose-500/20"
-                    : "border-slate-700 hover:border-slate-600 text-slate-300"
-                }`}
-              >
-                SELL (Short)
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Lot Size, Entry Price, Exit Price */}
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Lot Size</label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={lotSize}
-              onChange={(e) => setLotSize(e.target.value)}
-              placeholder="0.10"
-              required
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Entry Price</label>
-            <Input
-              type="number"
-              step="any"
-              value={entryPrice}
-              onChange={(e) => setEntryPrice(e.target.value)}
-              placeholder="2480.00"
-              required
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Exit Price</label>
-            <Input
-              type="number"
-              step="any"
-              value={exitPrice}
-              onChange={(e) => setExitPrice(e.target.value)}
-              placeholder="2492.50"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Stop Loss & Take Profit */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1 text-rose-400">
-              Stop Loss (SL)
-            </label>
-            <Input
-              type="number"
-              step="any"
-              value={stopLoss}
-              onChange={(e) => setStopLoss(e.target.value)}
-              placeholder="2474.00"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1 text-emerald-400">
-              Take Profit (TP)
-            </label>
-            <Input
-              type="number"
-              step="any"
-              value={takeProfit}
-              onChange={(e) => setTakeProfit(e.target.value)}
-              placeholder="2495.00"
-            />
-          </div>
-        </div>
-
-        {/* Strategy Selection */}
-        <div>
-          <label className="text-xs font-semibold text-slate-300 block mb-1">Setup / Strategi</label>
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {DEFAULT_STRATEGIES.map((s) => (
-              <button
-                key={s.name}
-                type="button"
-                onClick={() => setStrategy(s.name)}
-                className={`text-[10px] px-2.5 py-1 rounded-lg border transition-colors ${
-                  strategy === s.name
-                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 font-semibold"
-                    : "border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700 hover:text-slate-200"
-                }`}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
-          <Input
-            value={strategy}
-            onChange={(e) => setStrategy(e.target.value)}
-            placeholder="Ketik strategi kustom kamu..."
-          />
-        </div>
-
-        {/* Psychology: Emotion Tag & Mistake Tag */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Kondisi Emosi</label>
-            <select
-              value={emotion}
-              onChange={(e) => setEmotion(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-emerald-500/50"
-            >
-              {EMOTION_TAGS.map((tag) => (
-                <option key={tag.label} value={tag.label}>
-                  {tag.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Evaluasi Kesalahan</label>
-            <select
-              value={mistake}
-              onChange={(e) => setMistake(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-emerald-500/50"
-            >
-              <option value="">Tidak Ada (Disiplin)</option>
-              {MISTAKE_TAGS.map((tag) => (
-                <option key={tag} value={tag}>
-                  {tag}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* News Trade Checkbox */}
-        <div className="flex items-center gap-2 pt-1">
-          <input
-            type="checkbox"
-            id="isNewsTrade"
-            checked={isNewsTrade}
-            onChange={(e) => setIsNewsTrade(e.target.checked)}
-            className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20 h-4 w-4 cursor-pointer"
-          />
-          <label htmlFor="isNewsTrade" className="text-xs text-slate-300 cursor-pointer">
-            Posisi ini dieksekusi saat ada rilis Berita Ekonomi / High Impact News
+        {/* Notes / Description */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5 text-slate-400" />
+            <span>Deskripsi / Catatan</span>
           </label>
-        </div>
-
-        {/* Notes */}
-        <div>
-          <label className="text-xs font-semibold text-slate-300 block mb-1">Catatan Tambahan</label>
           <Textarea
+            rows={2}
+            placeholder="Contoh: Scalping Gold sesi London, Profit EURUSD, atau Fee penarikan..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Tulis alasan entry, konfirmasi timeframe besar, atau catatan evaluasi..."
-            rows={2}
-            className="resize-none"
+            className="text-xs rounded-xl border-slate-800 bg-slate-950/60 resize-none"
           />
         </div>
 
+        {/* Summary Card */}
+        {numericAmount > 0 && (
+          <div
+            className={cn(
+              "p-3 rounded-xl border text-xs flex items-center justify-between",
+              transactionType === "PROFIT"
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
+                : "bg-rose-500/10 border-rose-500/20 text-rose-300"
+            )}
+          >
+            <span>Akan dicatat sebagai:</span>
+            <span className="font-mono font-bold text-sm">
+              {formatSignedCurrency(calculatedPnL, accountCurrency)}
+            </span>
+          </div>
+        )}
+
         <DialogFooter className="pt-2">
-          <Button type="button" variant="outline" onClick={onClose} className="text-xs">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            className="text-xs text-slate-400 hover:text-white"
+          >
             Batal
           </Button>
-          <Button type="submit" className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">
-            Simpan Catatan Trade
+
+          <Button
+            type="submit"
+            disabled={numericAmount <= 0}
+            className={cn(
+              "text-xs font-bold text-slate-950 shadow-lg transition-all",
+              transactionType === "PROFIT"
+                ? "bg-emerald-500 hover:bg-emerald-400 shadow-emerald-500/20"
+                : "bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20"
+            )}
+          >
+            Simpan Catatan
           </Button>
         </DialogFooter>
       </form>

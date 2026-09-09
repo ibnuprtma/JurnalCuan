@@ -37,22 +37,18 @@ export async function fetchAccountsClient(): Promise<any[]> {
 
 export async function saveTradeClient(tradeData: any): Promise<SampleTrade> {
   const openTime = tradeData.openTime ? new Date(tradeData.openTime) : new Date();
-  const closeTime = tradeData.closeTime ? new Date(tradeData.closeTime) : new Date();
-  const exitPrice = tradeData.exitPrice || tradeData.entryPrice;
-  const session = detectTradingSession(openTime);
+  const closeTime = tradeData.closeTime ? new Date(tradeData.closeTime) : new Date(openTime);
+  const pair = (tradeData.pair || "CATATAN").toUpperCase();
 
-  const netPips = calculatePips(tradeData.pair, tradeData.entryPrice, exitPrice, tradeData.direction);
-  const { plannedRR, realizedRR } = calculateRiskReward(
-    tradeData.entryPrice,
-    exitPrice,
-    tradeData.stopLoss,
-    tradeData.takeProfit,
-    tradeData.direction
-  );
-
-  const pipValue = tradeData.pair.includes("XAU") ? 1.0 : tradeData.pair.includes("JPY") ? 6.5 : 10.0;
-  const grossPnL = netPips * tradeData.lotSize * pipValue;
-  const netPnL = Number(grossPnL.toFixed(2));
+  let netPnL = tradeData.netPnL !== undefined ? Number(tradeData.netPnL) : 0;
+  if (tradeData.netPnL === undefined && tradeData.entryPrice) {
+    const exitPrice = tradeData.exitPrice || tradeData.entryPrice;
+    const dir = tradeData.direction || "BUY";
+    const netPips = calculatePips(pair, tradeData.entryPrice, exitPrice, dir);
+    const pipValue = pair.includes("XAU") ? 1.0 : pair.includes("JPY") ? 6.5 : 10.0;
+    const grossPnL = netPips * (tradeData.lotSize || 1.0) * pipValue;
+    netPnL = Number(grossPnL.toFixed(2));
+  }
 
   let status: "WIN" | "LOSS" | "BREAK_EVEN" = "BREAK_EVEN";
   if (netPnL > 0) status = "WIN";
@@ -62,21 +58,21 @@ export async function saveTradeClient(tradeData: any): Promise<SampleTrade> {
     id: `trade-${Date.now()}`,
     accountId: tradeData.accountId || "default-account",
     ticketId: `${Math.floor(10000000 + Math.random() * 90000000)}`,
-    pair: tradeData.pair.toUpperCase(),
-    direction: tradeData.direction,
-    session,
+    pair,
+    direction: tradeData.direction || (netPnL >= 0 ? "BUY" : "SELL"),
+    session: detectTradingSession(openTime),
     openTime: openTime.toISOString(),
     closeTime: closeTime.toISOString(),
-    lotSize: tradeData.lotSize,
-    entryPrice: tradeData.entryPrice,
-    exitPrice,
+    lotSize: tradeData.lotSize || 1.0,
+    entryPrice: tradeData.entryPrice || 0,
+    exitPrice: tradeData.exitPrice || 0,
     stopLoss: tradeData.stopLoss || 0,
     takeProfit: tradeData.takeProfit || 0,
     netPnL,
-    netPips,
-    riskRewardRatio: realizedRR || plannedRR || 0,
+    netPips: tradeData.netPips || 0,
+    riskRewardRatio: tradeData.riskRewardRatio || 0,
     status,
-    strategyName: tradeData.strategyName || "SMC / Order Block",
+    strategyName: tradeData.strategyName || "Catatan Transaksi",
     emotionTag: tradeData.emotionTag,
     mistakeTag: tradeData.mistakeTag,
     notes: tradeData.notes,
@@ -99,3 +95,18 @@ export async function saveTradeClient(tradeData: any): Promise<SampleTrade> {
 
   return clientTrade;
 }
+
+export async function deleteTradeClient(tradeId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/trades?id=${tradeId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      return true;
+    }
+  } catch (e) {
+    console.warn("DELETE /api/trades failed:", e);
+  }
+  return false;
+}
+

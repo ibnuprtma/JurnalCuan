@@ -8,7 +8,6 @@ import {
   Calendar,
   ListOrdered,
   LineChart,
-  Newspaper,
   Calculator,
   Share2,
   Settings,
@@ -29,7 +28,7 @@ const NAV_ITEMS = [
     badge: "Utama",
   },
   {
-    label: "Catatan Trade",
+    label: "Catatan Transaksi",
     href: "/trades",
     icon: ListOrdered,
   },
@@ -37,11 +36,6 @@ const NAV_ITEMS = [
     label: "Statistik & Analytics",
     href: "/analytics",
     icon: LineChart,
-  },
-  {
-    label: "Berita Ekonomi",
-    href: "/news",
-    icon: Newspaper,
   },
   {
     label: "Kalkulator Lot",

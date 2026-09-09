@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Calendar, ListOrdered, LineChart, Newspaper, Settings } from "lucide-react";
+import { LayoutDashboard, Calendar, ListOrdered, LineChart, Settings } from "lucide-react";
 
 const MOBILE_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Kalender", href: "/calendar", icon: Calendar },
-  { label: "Trades", href: "/trades", icon: ListOrdered },
+  { label: "Transaksi", href: "/trades", icon: ListOrdered },
   { label: "Analytics", href: "/analytics", icon: LineChart },
-  { label: "Berita", href: "/news", icon: Newspaper },
   { label: "Pengaturan", href: "/settings", icon: Settings },
 ];
 

@@ -4,18 +4,21 @@ import * as React from "react";
 import { formatCurrency, formatSignedCurrency, cn } from "@/lib/utils";
 import { SampleTrade } from "@/lib/sample-data";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogCloseButton } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Clock, Tag, MessageSquare, AlertCircle } from "lucide-react";
+import { useAppShell } from "@/components/layout/app-shell";
+import { TrendingUp, TrendingDown, Clock, FileText, Trash2, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface DayTradesDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   date: Date | null;
   trades: SampleTrade[];
+  currency?: string;
   onOpenNewTradeForDate?: (date: Date) => void;
 }
 
-export function DayTradesDrawer({ isOpen, onClose, date, trades }: DayTradesDrawerProps) {
+export function DayTradesDrawer({ isOpen, onClose, date, trades, currency = "USD" }: DayTradesDrawerProps) {
+  const { handleDeleteTrade } = useAppShell();
   if (!date) return null;
 
   const dateString = new Intl.DateTimeFormat("id-ID", {
@@ -27,9 +30,14 @@ export function DayTradesDrawer({ isOpen, onClose, date, trades }: DayTradesDraw
   }).format(date);
 
   const totalPnL = trades.reduce((acc, t) => acc + t.netPnL, 0);
-  const totalPips = trades.reduce((acc, t) => acc + t.netPips, 0);
-  const winCount = trades.filter((t) => t.status === "WIN").length;
-  const winRate = trades.length > 0 ? (winCount / trades.length) * 100 : 0;
+  const totalProfit = trades.filter((t) => t.netPnL > 0).reduce((acc, t) => acc + t.netPnL, 0);
+  const totalLoss = Math.abs(trades.filter((t) => t.netPnL < 0).reduce((acc, t) => acc + t.netPnL, 0));
+
+  const onDelete = async (tradeId: string) => {
+    if (confirm("Hapus catatan transaksi ini?")) {
+      await handleDeleteTrade(tradeId);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -53,26 +61,21 @@ export function DayTradesDrawer({ isOpen, onClose, date, trades }: DayTradesDraw
               totalPnL > 0 ? "text-emerald-400" : totalPnL < 0 ? "text-rose-400" : "text-slate-300"
             )}
           >
-            {formatSignedCurrency(totalPnL)}
+            {formatSignedCurrency(totalPnL, currency)}
           </div>
         </div>
 
         <div className="text-center p-2 rounded-xl bg-slate-950/60 border border-slate-800/60">
-          <div className="text-[10px] uppercase font-bold text-slate-400">Win Rate</div>
-          <div className="text-sm font-extrabold text-white mt-0.5 font-mono">
-            {winRate.toFixed(0)}%
+          <div className="text-[10px] uppercase font-bold text-slate-400">Pemasukan (+)</div>
+          <div className="text-sm font-extrabold text-emerald-400 mt-0.5 font-mono">
+            {totalProfit > 0 ? `+${formatCurrency(totalProfit, currency)}` : formatCurrency(0, currency)}
           </div>
         </div>
 
         <div className="text-center p-2 rounded-xl bg-slate-950/60 border border-slate-800/60">
-          <div className="text-[10px] uppercase font-bold text-slate-400">Total Pips</div>
-          <div
-            className={cn(
-              "text-sm font-extrabold font-mono mt-0.5",
-              totalPips >= 0 ? "text-emerald-400" : "text-rose-400"
-            )}
-          >
-            {totalPips > 0 ? `+${totalPips.toFixed(1)}` : totalPips.toFixed(1)} pips
+          <div className="text-[10px] uppercase font-bold text-slate-400">Pengeluaran (-)</div>
+          <div className="text-sm font-extrabold text-rose-400 mt-0.5 font-mono">
+            {totalLoss > 0 ? `-${formatCurrency(totalLoss, currency)}` : formatCurrency(0, currency)}
           </div>
         </div>
       </div>
@@ -81,7 +84,7 @@ export function DayTradesDrawer({ isOpen, onClose, date, trades }: DayTradesDraw
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            Daftar Transaksi ({trades.length})
+            Daftar Catatan Transaksi ({trades.length})
           </h4>
         </div>
 
@@ -90,79 +93,69 @@ export function DayTradesDrawer({ isOpen, onClose, date, trades }: DayTradesDraw
             Tidak ada transaksi pada tanggal ini (Hari Istirahat / No Trade).
           </div>
         ) : (
-          trades.map((trade) => (
-            <div
-              key={trade.id}
-              className="p-3.5 rounded-2xl border border-slate-800/90 bg-slate-950/70 hover:border-slate-700 transition-all space-y-2.5"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant={trade.direction === "BUY" ? "buy" : "sell"}>
-                    {trade.direction}
-                  </Badge>
-                  <span className="font-bold text-sm text-white font-mono">{trade.pair}</span>
-                  <span className="text-xs text-slate-400">{trade.lotSize} Lot</span>
+          trades.map((trade) => {
+            const timeString = new Intl.DateTimeFormat("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "Asia/Jakarta",
+            }).format(new Date(trade.openTime));
+
+            const isProfit = trade.netPnL >= 0;
+            const displayNotes = trade.notes || trade.strategyName || "Catatan Transaksi";
+
+            return (
+              <div
+                key={trade.id}
+                className="p-3.5 rounded-2xl border border-slate-800/90 bg-slate-950/70 hover:border-slate-700 transition-all flex items-center justify-between gap-3 group"
+              >
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {timeString} WIB
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded border",
+                        isProfit
+                          ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                          : "bg-rose-500/15 text-rose-300 border-rose-500/30"
+                      )}
+                    >
+                      {isProfit ? "Cuan" : "Boncos"}
+                    </span>
+                  </div>
+
+                  <p className="text-xs font-medium text-slate-200 line-clamp-2">
+                    {displayNotes}
+                  </p>
                 </div>
 
-                <div
-                  className={cn(
-                    "font-bold text-sm font-mono flex items-center gap-1",
-                    trade.netPnL > 0 ? "text-emerald-400" : trade.netPnL < 0 ? "text-rose-400" : "text-slate-300"
-                  )}
-                >
-                  {trade.netPnL > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : trade.netPnL < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : null}
-                  {formatSignedCurrency(trade.netPnL)}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right font-mono">
+                    <div
+                      className={cn(
+                        "font-bold text-sm",
+                        isProfit ? "text-emerald-400" : "text-rose-400"
+                      )}
+                    >
+                      {formatSignedCurrency(trade.netPnL, currency)}
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete(trade.id)}
+                    className="h-7 w-7 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg opacity-60 group-hover:opacity-100 transition-all"
+                    title="Hapus Catatan"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
-
-              {/* Trade Details Bar */}
-              <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-400 pt-1 border-t border-slate-800/60 font-mono">
-                <div>
-                  <span className="text-slate-500">Entry: </span>
-                  <span className="text-slate-200">{trade.entryPrice}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500">Exit: </span>
-                  <span className="text-slate-200">{trade.exitPrice}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500">R:R: </span>
-                  <span className="text-slate-200">1:{trade.riskRewardRatio.toFixed(1)}</span>
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                {trade.strategyName && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-300 border border-blue-500/20">
-                    {trade.strategyName}
-                  </span>
-                )}
-                {trade.emotionTag && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                    {trade.emotionTag}
-                  </span>
-                )}
-                {trade.mistakeTag && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-300 border border-rose-500/20 flex items-center gap-1">
-                    <AlertCircle className="h-2.5 w-2.5" />
-                    {trade.mistakeTag}
-                  </span>
-                )}
-                {trade.session && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700">
-                    {trade.session}
-                  </span>
-                )}
-              </div>
-
-              {trade.notes && (
-                <p className="text-[11px] text-slate-400 bg-slate-900/60 p-2 rounded-xl border border-slate-800/80 italic">
-                  &quot;{trade.notes}&quot;
-                </p>
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </Dialog>

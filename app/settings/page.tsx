@@ -17,6 +17,7 @@ import {
   Shield,
   Globe,
   Calculator,
+  Newspaper,
   Share2,
   ArrowRight,
   Sparkles,
@@ -28,7 +29,10 @@ import {
   FlaskConical,
   Building2,
   Check,
+  Pencil,
 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { EditBalanceModal } from "@/components/tools/edit-balance-modal";
 
 const ACCOUNT_TYPE_CONFIG: Record<
   string,
@@ -121,6 +125,10 @@ export default function SettingsPage() {
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = React.useState(false);
+
+  // Edit Saldo Awal Modal state
+  const [isEditBalanceOpen, setIsEditBalanceOpen] = React.useState(false);
+  const [selectedEditAccountId, setSelectedEditAccountId] = React.useState<string | undefined>(undefined);
 
   // Autocomplete state untuk Broker
   const [brokerDropdownOpen, setBrokerDropdownOpen] = React.useState(false);
@@ -246,7 +254,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Quick Tools Navigation Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Link
           href="/calculator"
           className="p-5 rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl hover:border-emerald-500/40 transition-all group flex flex-col justify-between space-y-4 shadow-xl"
@@ -266,6 +274,29 @@ export default function SettingsPage() {
             </h3>
             <p className="text-xs text-slate-400 mt-1">
               Hitung volume lot yang aman sebelum entry berdasarkan toleransi risiko modal (%) dan jarak Stop Loss (pips).
+            </p>
+          </div>
+        </Link>
+
+        <Link
+          href="/news"
+          className="p-5 rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl hover:border-amber-500/40 transition-all group flex flex-col justify-between space-y-4 shadow-xl"
+        >
+          <div className="flex items-start justify-between">
+            <div className="h-12 w-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+              <Newspaper className="h-6 w-6" />
+            </div>
+            <div className="flex items-center gap-1 text-xs font-bold text-amber-400 group-hover:translate-x-1 transition-transform">
+              <span>Buka Berita</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </div>
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white group-hover:text-amber-400 transition-colors">
+              Kalender Berita Ekonomi
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Pantau jadwal rilis berita berdampak tinggi/sedang (High/Medium Impact) dari Forex Factory secara live.
             </p>
           </div>
         </Link>
@@ -655,12 +686,31 @@ export default function SettingsPage() {
                     </div>
                     <div className="text-xs text-slate-400 mt-0.5">
                       Broker: <span className="text-slate-200 font-mono">{brokerDisplay}</span> • Saldo:{" "}
-                      <strong className="text-emerald-400 font-mono">${account.currentBalance.toLocaleString()}</strong>
+                      <strong className="text-emerald-400 font-mono">
+                        {formatCurrency(account.currentBalance, account.currency)}
+                      </strong>
+                      {" • Modal Awal: "}
+                      <strong className="text-slate-300 font-mono">
+                        {formatCurrency(account.initialBalance || account.currentBalance || 0, account.currency)}
+                      </strong>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedEditAccountId(account.id);
+                      setIsEditBalanceOpen(true);
+                    }}
+                    className="h-7 text-xs px-2.5 gap-1.5 border-slate-700 hover:border-emerald-500/50 hover:text-emerald-400 text-slate-300"
+                  >
+                    <Pencil className="h-3 w-3 text-emerald-400" />
+                    <span>Ubah Modal Awal</span>
+                  </Button>
                   <Badge variant="outline" className="font-mono text-[10px] gap-1">
                     <Key className="h-2.5 w-2.5" /> API: <code>jc_{account.id.slice(0, 6)}…</code>
                   </Badge>
@@ -670,6 +720,17 @@ export default function SettingsPage() {
           })}
         </div>
       </div>
+
+      {/* Edit Initial Balance Modal */}
+      <EditBalanceModal
+        isOpen={isEditBalanceOpen}
+        onClose={() => setIsEditBalanceOpen(false)}
+        accounts={accounts}
+        currentAccountId={selectedEditAccountId}
+        onBalanceUpdated={() => {
+          if (typeof refreshAccounts === "function") refreshAccounts();
+        }}
+      />
     </div>
   );
 }
