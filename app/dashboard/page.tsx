@@ -41,6 +41,20 @@ const EquityCurveChart = dynamic(
   }
 );
 
+// Dynamic import BreakdownCharts
+const BreakdownCharts = dynamic(
+  () => import("@/components/analytics/breakdown-charts").then((m) => m.BreakdownCharts),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-pulse">
+        <div className="h-[280px] rounded-3xl border border-slate-800/80 bg-slate-900/60 p-5" />
+        <div className="h-[280px] rounded-3xl border border-slate-800/80 bg-slate-900/60 p-5" />
+      </div>
+    ),
+  }
+);
+
 // Dynamic import MarketSessionsClock
 const MarketSessionsClock = dynamic(
   () => import("@/components/market/market-sessions-clock").then((m) => m.MarketSessionsClock),
@@ -235,7 +249,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 3. Visual Forex Market Sessions Clock (Full Width at Bottom) */}
+      {/* 3. Breakdown Charts (Performa per Hari & Arus Kas Pemasukan vs Pengeluaran) */}
+      <BreakdownCharts trades={trades} currency={accountCurrency} />
+
+      {/* 4. Visual Forex Market Sessions Clock (Full Width at Bottom) */}
       <MarketSessionsClock />
 
       {/* Edit Initial Balance Modal */}

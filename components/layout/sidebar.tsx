@@ -33,11 +33,6 @@ const NAV_ITEMS = [
     icon: ListOrdered,
   },
   {
-    label: "Statistik & Analytics",
-    href: "/analytics",
-    icon: LineChart,
-  },
-  {
     label: "Kalkulator Lot",
     href: "/calculator",
     icon: Calculator,
