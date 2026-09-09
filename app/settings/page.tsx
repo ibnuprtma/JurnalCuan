@@ -153,6 +153,24 @@ export default function SettingsPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Handle direct navigation to add account from dashboard warning
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("action") === "new-account") {
+        setShowAddAccount(true);
+        const typeParam = urlParams.get("type");
+        if (typeParam?.toLowerCase() === "real") {
+          setForm((f) => ({ ...f, accountType: "Real" }));
+        }
+        setTimeout(() => {
+          const el = document.getElementById("accounts-section");
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }, 250);
+      }
+    }
+  }, []);
+
   React.useEffect(() => {
     async function loadAuth() {
       try {
@@ -394,7 +412,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Multi-Accounts Manager */}
-      <div className="p-6 rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl shadow-xl space-y-6">
+      <div id="accounts-section" className="p-6 rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl shadow-xl space-y-6">
         <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">

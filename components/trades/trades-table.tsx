@@ -14,27 +14,29 @@ import {
   TrendingDown,
   Plus,
   Trash2,
-  Calendar,
   ChevronLeft,
   ChevronRight,
   FileText,
   Loader2,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 
 interface TradesTableProps {
   trades: SampleTrade[];
   onOpenNewTrade?: () => void;
-  onOpenImportModal?: () => void; // Deprecated / hidden
+  onOpenImportModal?: () => void;
 }
 
 export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
   const { handleDeleteTrade, accounts, selectedAccountId } = useAppShell();
+  const isAllSelected = !selectedAccountId || selectedAccountId === "all";
   const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
-  const currency = activeAccount?.currency || "USD";
+  const defaultCurrency = activeAccount?.currency || "USD";
 
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
+  const [accountTypeFilter, setAccountTypeFilter] = React.useState<string>("ALL");
   const [sortField, setSortField] = React.useState<string>("openTime");
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = React.useState<number>(1);
@@ -43,6 +45,9 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
   // Filter logic
   const filteredTrades = React.useMemo(() => {
     return trades.filter((t) => {
+      const tradeAcc = accounts.find((a) => a.id === t.accountId);
+      const accType = (tradeAcc?.accountType || "Real").toLowerCase();
+
       const notesText = (t.notes || t.strategyName || t.pair || "").toLowerCase();
       const matchesSearch = notesText.includes(searchQuery.toLowerCase()) || t.ticketId.includes(searchQuery);
 
@@ -51,9 +56,12 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
         (typeFilter === "PROFIT" && t.netPnL > 0) ||
         (typeFilter === "LOSS" && t.netPnL < 0);
 
-      return matchesSearch && matchesType;
+      const matchesAccType =
+        accountTypeFilter === "ALL" || accType === accountTypeFilter.toLowerCase();
+
+      return matchesSearch && matchesType && matchesAccType;
     });
-  }, [trades, searchQuery, typeFilter]);
+  }, [trades, searchQuery, typeFilter, accountTypeFilter, accounts]);
 
   // Sorting logic
   const sortedTrades = React.useMemo(() => {
@@ -119,8 +127,9 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
           />
         </div>
 
-        {/* Filter Dropdown */}
+        {/* Filter Dropdowns */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Outcome Filter */}
           <select
             value={typeFilter}
             onChange={(e) => {
@@ -129,17 +138,34 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
             }}
             className="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
           >
-            <option value="ALL">Semua Transaksi</option>
+            <option value="ALL">Semua Hasil</option>
             <option value="PROFIT">🟢 Hanya Cuan (Profit)</option>
             <option value="LOSS">🔴 Hanya Boncos (Loss)</option>
           </select>
+
+          {/* Account Type Filter (if All Accounts) */}
+          {isAllSelected && (
+            <select
+              value={accountTypeFilter}
+              onChange={(e) => {
+                setAccountTypeFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            >
+              <option value="ALL">Semua Tipe Akun</option>
+              <option value="real">Real Account</option>
+              <option value="prop firm">Prop Firm</option>
+              <option value="demo">Demo Account</option>
+            </select>
+          )}
 
           {/* New Entry Action Button */}
           {onOpenNewTrade && (
             <Button
               size="sm"
               onClick={onOpenNewTrade}
-              className="gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold"
+              className="gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg shadow-emerald-500/20"
             >
               <Plus className="h-3.5 w-3.5 stroke-[3]" />
               <span>Catat Transaksi</span>
@@ -164,13 +190,14 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
                   </div>
                 </th>
                 <th className="p-4">Deskripsi / Catatan</th>
-                <th className="p-4 w-32">Tipe</th>
+                {isAllSelected && <th className="p-4 w-36">Akun & Tipe</th>}
+                <th className="p-4 w-32">Status</th>
                 <th
                   onClick={() => handleSort("netPnL")}
                   className="p-4 cursor-pointer hover:text-white transition-colors w-36 text-right"
                 >
                   <div className="flex items-center justify-end gap-1">
-                    <span>Nominal Cuan</span>
+                    <span>Nominal</span>
                     <ArrowUpDown className="h-3 w-3" />
                   </div>
                 </th>
@@ -180,7 +207,7 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
             <tbody className="divide-y divide-slate-800/60">
               {paginatedTrades.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">
+                  <td colSpan={isAllSelected ? 6 : 5} className="p-8 text-center text-slate-500">
                     Tidak ada catatan transaksi yang sesuai filter.
                   </td>
                 </tr>
@@ -198,6 +225,11 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
 
                   const isProfit = trade.netPnL >= 0;
                   const displayNotes = trade.notes || trade.strategyName || "Catatan Transaksi";
+
+                  // Trade account & currency lookup
+                  const tradeAccount = accounts.find((a) => a.id === trade.accountId);
+                  const tradeCurrency = tradeAccount?.currency || defaultCurrency;
+                  const accType = tradeAccount?.accountType || "Real";
 
                   return (
                     <tr
@@ -218,7 +250,34 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
                         </div>
                       </td>
 
-                      {/* Tipe */}
+                      {/* Akun & Tipe (Hanya ditampilkan di Semua Portofolio) */}
+                      {isAllSelected && (
+                        <td className="p-4 whitespace-nowrap">
+                          {tradeAccount ? (
+                            <div className="space-y-0.5">
+                              <div className="font-semibold text-xs text-slate-200 truncate max-w-[130px]">
+                                {tradeAccount.name}
+                              </div>
+                              <span
+                                className={cn(
+                                  "inline-block text-[9px] font-bold px-1.5 py-0.2 rounded border font-mono",
+                                  accType.toLowerCase() === "real"
+                                    ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
+                                    : accType.toLowerCase().includes("prop")
+                                    ? "bg-purple-500/10 text-purple-300 border-purple-500/20"
+                                    : "bg-amber-500/10 text-amber-300 border-amber-500/20"
+                                )}
+                              >
+                                {accType} • {tradeCurrency}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-500">—</span>
+                          )}
+                        </td>
+                      )}
+
+                      {/* Tipe / Status */}
                       <td className="p-4 whitespace-nowrap">
                         <span
                           className={cn(
@@ -231,21 +290,21 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
                           {isProfit ? (
                             <>
                               <TrendingUp className="h-3 w-3" />
-                              <span>Cuan (Pemasukan)</span>
+                              <span>Cuan</span>
                             </>
                           ) : (
                             <>
                               <TrendingDown className="h-3 w-3" />
-                              <span>Boncos (Pengeluaran)</span>
+                              <span>Boncos</span>
                             </>
                           )}
                         </span>
                       </td>
 
-                      {/* Nominal Net P&L */}
+                      {/* Nominal Net P&L (Formatted in this Trade's Account Currency) */}
                       <td className="p-4 whitespace-nowrap text-right font-mono font-bold text-sm">
                         <span className={isProfit ? "text-emerald-400" : "text-rose-400"}>
-                          {formatSignedCurrency(trade.netPnL, currency)}
+                          {formatSignedCurrency(trade.netPnL, tradeCurrency)}
                         </span>
                       </td>
 

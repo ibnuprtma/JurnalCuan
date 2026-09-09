@@ -5,17 +5,11 @@ import Link from "next/link";
 import {
   TrendingUp,
   LogIn,
-  Shield,
-  Zap,
-  Calendar,
-  BarChart3,
-  Globe,
   Lock,
   ArrowRight,
   Sparkles,
   ChevronRight,
   Clock,
-  User,
 } from "lucide-react";
 
 export default function WelcomeLandingPage() {
@@ -258,40 +252,7 @@ export default function WelcomeLandingPage() {
           )}
         </div>
 
-        {/* Feature Highlights Pills */}
-        <div className="mt-14 pt-8 border-t border-slate-800/80 w-full grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
-          <div className="p-3.5 rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-sm">
-            <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-2">
-              <Calendar className="h-4 w-4" />
-            </div>
-            <h4 className="text-xs font-bold text-white">Kalender Cuan</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">Heatmap P&L trading harian</p>
-          </div>
 
-          <div className="p-3.5 rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-sm">
-            <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 mb-2">
-              <Zap className="h-4 w-4" />
-            </div>
-            <h4 className="text-xs font-bold text-white">MT5 Import & Sync</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">Import riwayat otomatis</p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-sm">
-            <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 mb-2">
-              <BarChart3 className="h-4 w-4" />
-            </div>
-            <h4 className="text-xs font-bold text-white">Win Rate Analytics</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">Evaluasi psikologi & strategi</p>
-          </div>
-
-          <div className="p-3.5 rounded-2xl border border-slate-800/60 bg-slate-900/40 backdrop-blur-sm">
-            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 mb-2">
-              <Globe className="h-4 w-4" />
-            </div>
-            <h4 className="text-xs font-bold text-white">Live News Feed</h4>
-            <p className="text-[10px] text-slate-400 mt-0.5">Jadwal Forex Factory live</p>
-          </div>
-        </div>
       </main>
 
       {/* ========================================================================= */}

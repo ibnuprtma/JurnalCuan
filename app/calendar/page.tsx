@@ -45,7 +45,13 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar Component */}
-      <PnLCalendar trades={trades} currency={accountCurrency} onOpenNewTrade={openNewTradeModal} />
+      <PnLCalendar
+        trades={trades}
+        currency={accountCurrency}
+        accounts={accounts}
+        selectedAccountId={selectedAccountId}
+        onOpenNewTrade={openNewTradeModal}
+      />
     </div>
   );
 }

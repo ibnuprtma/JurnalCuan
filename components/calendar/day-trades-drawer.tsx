@@ -5,7 +5,7 @@ import { formatCurrency, formatSignedCurrency, cn } from "@/lib/utils";
 import { SampleTrade } from "@/lib/sample-data";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogCloseButton } from "@/components/ui/dialog";
 import { useAppShell } from "@/components/layout/app-shell";
-import { TrendingUp, TrendingDown, Clock, FileText, Trash2, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface DayTradesDrawerProps {
@@ -14,12 +14,44 @@ interface DayTradesDrawerProps {
   date: Date | null;
   trades: SampleTrade[];
   currency?: string;
+  accounts?: any[];
   onOpenNewTradeForDate?: (date: Date) => void;
 }
 
-export function DayTradesDrawer({ isOpen, onClose, date, trades, currency = "USD" }: DayTradesDrawerProps) {
+export function DayTradesDrawer({
+  isOpen,
+  onClose,
+  date,
+  trades,
+  currency = "USD",
+  accounts = [],
+}: DayTradesDrawerProps) {
   const { handleDeleteTrade } = useAppShell();
-  if (!date) return null;
+
+  // All Hooks MUST be called at top-level before any conditional return
+  const tradesByCurrency = React.useMemo(() => {
+    const map = new Map<string, SampleTrade[]>();
+    trades.forEach((t) => {
+      const acc = accounts.find((a) => a.id === t.accountId);
+      const curr = (acc?.currency || currency || "USD").toUpperCase();
+      const list = map.get(curr) || [];
+      list.push(t);
+      map.set(curr, list);
+    });
+    return map;
+  }, [trades, accounts, currency]);
+
+  const currencyList = React.useMemo(() => Array.from(tradesByCurrency.keys()), [tradesByCurrency]);
+  const isMultiCurrency = currencyList.length > 1;
+
+  const onDelete = async (tradeId: string) => {
+    if (confirm("Hapus catatan transaksi ini?")) {
+      await handleDeleteTrade(tradeId);
+    }
+  };
+
+  // Safe early return only AFTER all hooks have been executed
+  if (!date || !isOpen) return null;
 
   const dateString = new Intl.DateTimeFormat("id-ID", {
     weekday: "long",
@@ -29,55 +61,61 @@ export function DayTradesDrawer({ isOpen, onClose, date, trades, currency = "USD
     timeZone: "Asia/Jakarta",
   }).format(date);
 
-  const totalPnL = trades.reduce((acc, t) => acc + t.netPnL, 0);
-  const totalProfit = trades.filter((t) => t.netPnL > 0).reduce((acc, t) => acc + t.netPnL, 0);
-  const totalLoss = Math.abs(trades.filter((t) => t.netPnL < 0).reduce((acc, t) => acc + t.netPnL, 0));
-
-  const onDelete = async (tradeId: string) => {
-    if (confirm("Hapus catatan transaksi ini?")) {
-      await handleDeleteTrade(tradeId);
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogCloseButton onClose={onClose} />
       <DialogHeader>
         <DialogTitle>
           <div className="flex items-center gap-2">
-            <span>Rekap Harian</span>
+            <span>Rekap Catatan Harian</span>
           </div>
         </DialogTitle>
         <DialogDescription>{dateString}</DialogDescription>
       </DialogHeader>
 
       {/* Day Summary Cards */}
-      <div className="grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 mb-5">
-        <div className="text-center p-2 rounded-xl bg-slate-950/60 border border-slate-800/60">
-          <div className="text-[10px] uppercase font-bold text-slate-400">Net Cuan</div>
-          <div
-            className={cn(
-              "text-sm font-extrabold font-mono mt-0.5",
-              totalPnL > 0 ? "text-emerald-400" : totalPnL < 0 ? "text-rose-400" : "text-slate-300"
-            )}
-          >
-            {formatSignedCurrency(totalPnL, currency)}
-          </div>
-        </div>
+      <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 mb-5 space-y-2">
+        {currencyList.map((curr) => {
+          const currTrades = tradesByCurrency.get(curr) || [];
+          const currPnL = currTrades.reduce((acc, t) => acc + t.netPnL, 0);
+          const currProfit = currTrades.filter((t) => t.netPnL > 0).reduce((acc, t) => acc + t.netPnL, 0);
+          const currLoss = Math.abs(currTrades.filter((t) => t.netPnL < 0).reduce((acc, t) => acc + t.netPnL, 0));
 
-        <div className="text-center p-2 rounded-xl bg-slate-950/60 border border-slate-800/60">
-          <div className="text-[10px] uppercase font-bold text-slate-400">Pemasukan (+)</div>
-          <div className="text-sm font-extrabold text-emerald-400 mt-0.5 font-mono">
-            {totalProfit > 0 ? `+${formatCurrency(totalProfit, currency)}` : formatCurrency(0, currency)}
-          </div>
-        </div>
+          return (
+            <div
+              key={curr}
+              className="grid grid-cols-3 gap-2 p-2 rounded-xl bg-slate-950/60 border border-slate-800/60"
+            >
+              <div className="text-center">
+                <div className="text-[10px] uppercase font-bold text-slate-400">
+                  Net Cuan {isMultiCurrency && `(${curr})`}
+                </div>
+                <div
+                  className={cn(
+                    "text-sm font-extrabold font-mono mt-0.5",
+                    currPnL > 0 ? "text-emerald-400" : currPnL < 0 ? "text-rose-400" : "text-slate-300"
+                  )}
+                >
+                  {formatSignedCurrency(currPnL, curr)}
+                </div>
+              </div>
 
-        <div className="text-center p-2 rounded-xl bg-slate-950/60 border border-slate-800/60">
-          <div className="text-[10px] uppercase font-bold text-slate-400">Pengeluaran (-)</div>
-          <div className="text-sm font-extrabold text-rose-400 mt-0.5 font-mono">
-            {totalLoss > 0 ? `-${formatCurrency(totalLoss, currency)}` : formatCurrency(0, currency)}
-          </div>
-        </div>
+              <div className="text-center">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Pemasukan (+)</div>
+                <div className="text-sm font-extrabold text-emerald-400 mt-0.5 font-mono">
+                  {currProfit > 0 ? `+${formatCurrency(currProfit, curr)}` : formatCurrency(0, curr)}
+                </div>
+              </div>
+
+              <div className="text-center">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Pengeluaran (-)</div>
+                <div className="text-sm font-extrabold text-rose-400 mt-0.5 font-mono">
+                  {currLoss > 0 ? `-${formatCurrency(currLoss, curr)}` : formatCurrency(0, curr)}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* List of Trades */}
@@ -102,6 +140,9 @@ export function DayTradesDrawer({ isOpen, onClose, date, trades, currency = "USD
 
             const isProfit = trade.netPnL >= 0;
             const displayNotes = trade.notes || trade.strategyName || "Catatan Transaksi";
+            const acc = accounts.find((a) => a.id === trade.accountId);
+            const tradeCurrency = acc?.currency || currency || "USD";
+            const accType = acc?.accountType || "Real";
 
             return (
               <div
@@ -109,14 +150,21 @@ export function DayTradesDrawer({ isOpen, onClose, date, trades, currency = "USD
                 className="p-3.5 rounded-2xl border border-slate-800/90 bg-slate-950/70 hover:border-slate-700 transition-all flex items-center justify-between gap-3 group"
               >
                 <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {timeString} WIB
                     </span>
+
+                    {acc && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                        {acc.name} ({accType})
+                      </span>
+                    )}
+
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.2 rounded border",
+                        "inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded border",
                         isProfit
                           ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
                           : "bg-rose-500/15 text-rose-300 border-rose-500/30"
@@ -139,7 +187,7 @@ export function DayTradesDrawer({ isOpen, onClose, date, trades, currency = "USD
                         isProfit ? "text-emerald-400" : "text-rose-400"
                       )}
                     >
-                      {formatSignedCurrency(trade.netPnL, currency)}
+                      {formatSignedCurrency(trade.netPnL, tradeCurrency)}
                     </div>
                   </div>
 
@@ -147,7 +195,7 @@ export function DayTradesDrawer({ isOpen, onClose, date, trades, currency = "USD
                     variant="ghost"
                     size="icon"
                     onClick={() => onDelete(trade.id)}
-                    className="h-7 w-7 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg opacity-60 group-hover:opacity-100 transition-all"
+                    className="h-7 w-7 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg opacity-60 group-hover:opacity-100 transition-all cursor-pointer"
                     title="Hapus Catatan"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

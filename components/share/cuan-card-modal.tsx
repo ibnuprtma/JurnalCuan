@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, formatSignedCurrency } from "@/lib/utils";
 import { SampleTrade } from "@/lib/sample-data";
 import { useAppShell } from "@/components/layout/app-shell";
-import { Download, Sparkles, TrendingUp, TrendingDown, Share2, Copy, Check, Loader2 } from "lucide-react";
+import { Download, Sparkles, Copy, Check, Loader2 } from "lucide-react";
 import { toPng } from "html-to-image";
 
 interface CuanCardModalProps {
@@ -18,8 +18,17 @@ interface CuanCardModalProps {
 
 export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal Account" }: CuanCardModalProps) {
   const { accounts, selectedAccountId } = useAppShell();
+  const isAllSelected = !selectedAccountId || selectedAccountId === "all";
   const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
   const currency = activeAccount?.currency || "USD";
+
+  const distinctCurrencies = React.useMemo(() => {
+    if (!accounts || accounts.length === 0) return [currency];
+    const set = new Set(accounts.map((a) => (a.currency || "USD").toUpperCase()));
+    return Array.from(set);
+  }, [accounts, currency]);
+
+  const isMultiCurrency = isAllSelected && distinctCurrencies.length > 1;
 
   const [copied, setCopied] = React.useState(false);
   const [isDownloading, setIsDownloading] = React.useState(false);
@@ -35,14 +44,14 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
 
   const netPnL = trades.reduce((acc, t) => acc + t.netPnL, 0);
   const winCount = trades.filter((t) => t.netPnL > 0).length;
-  const winRate = trades.length > 0 ? (winCount / trades.length) * 100 : 0;
   const topTrade = [...trades].sort((a, b) => b.netPnL - a.netPnL)[0];
+  const topTradeAcc = topTrade ? accounts.find((a) => a.id === topTrade.accountId) : null;
+  const topTradeCurrency = topTradeAcc?.currency || currency;
 
   const handleDownload = async () => {
     if (!cardRef.current) return;
     setIsDownloading(true);
     try {
-      // Generate crisp 2x resolution PNG
       const dataUrl = await toPng(cardRef.current, {
         quality: 0.95,
         pixelRatio: 2,
@@ -133,17 +142,44 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
               <div className="text-[11px] uppercase font-bold text-slate-400 tracking-widest">
                 Daily Performance
               </div>
-              <div
-                className={`text-4xl font-extrabold font-mono tracking-tight drop-shadow-lg ${
-                  netPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-                }`}
-              >
-                {formatSignedCurrency(netPnL, currency)}
-              </div>
+
+              {!isMultiCurrency ? (
+                <div
+                  className={`text-4xl font-extrabold font-mono tracking-tight drop-shadow-lg ${
+                    netPnL >= 0 ? "text-emerald-400" : "text-rose-400"
+                  }`}
+                >
+                  {formatSignedCurrency(netPnL, currency)}
+                </div>
+              ) : (
+                <div className="space-y-1 py-1">
+                  {distinctCurrencies.map((curr) => {
+                    const currTrades = trades.filter((t) => {
+                      const a = accounts.find((acc) => acc.id === t.accountId);
+                      return (a?.currency || "USD").toUpperCase() === curr;
+                    });
+                    const currPnL = currTrades.reduce((sum, t) => sum + t.netPnL, 0);
+
+                    return (
+                      <div key={curr} className="flex items-center justify-center gap-2">
+                        <span className="text-xs text-slate-400 font-bold font-mono">{curr}:</span>
+                        <span
+                          className={`text-2xl font-extrabold font-mono ${
+                            currPnL >= 0 ? "text-emerald-400" : "text-rose-400"
+                          }`}
+                        >
+                          {formatSignedCurrency(currPnL, curr)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-xs text-slate-200">
-                <span className="text-emerald-400 font-bold font-mono">+{trades.filter(t => t.netPnL > 0).length} Cuan</span>
+                <span className="text-emerald-400 font-bold font-mono">+{winCount} Cuan</span>
                 <span>•</span>
-                <span className="text-rose-400 font-bold font-mono">-{trades.filter(t => t.netPnL < 0).length} Boncos</span>
+                <span className="text-rose-400 font-bold font-mono">-{trades.length - winCount} Boncos</span>
                 <span>•</span>
                 <span>{trades.length} Catatan</span>
               </div>
@@ -159,7 +195,7 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Paling Cuan:</span>
                   <span className="font-bold text-emerald-400 font-mono">
-                    {topTrade.notes || topTrade.pair} ({formatSignedCurrency(topTrade.netPnL, currency)})
+                    {topTrade.notes || topTrade.pair} ({formatSignedCurrency(topTrade.netPnL, topTradeCurrency)})
                   </span>
                 </div>
               )}

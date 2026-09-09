@@ -6,18 +6,39 @@ import { SampleTrade } from "@/lib/sample-data";
 import { useAppShell } from "@/components/layout/app-shell";
 import { DayTradesDrawer } from "./day-trades-drawer";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar as CalendarIcon, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar as CalendarIcon, Layers } from "lucide-react";
+import { formatCompactCurrency } from "@/lib/portfolio-utils";
 
 interface PnLCalendarProps {
   trades: SampleTrade[];
   onOpenNewTrade?: () => void;
   currency?: string;
+  accounts?: any[];
+  selectedAccountId?: string;
 }
 
-export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: PnLCalendarProps) {
-  const { accounts, selectedAccountId } = useAppShell();
+export function PnLCalendar({
+  trades,
+  onOpenNewTrade,
+  currency: propCurrency,
+  accounts: propAccounts,
+  selectedAccountId: propSelectedAccountId,
+}: PnLCalendarProps) {
+  const shell = useAppShell();
+  const accounts = propAccounts || shell.accounts || [];
+  const selectedAccountId = propSelectedAccountId || shell.selectedAccountId;
+
+  const isAllSelected = !selectedAccountId || selectedAccountId === "all";
   const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
-  const currency = propCurrency || activeAccount?.currency || "USD";
+  const defaultCurrency = propCurrency || activeAccount?.currency || "USD";
+
+  const distinctCurrencies = React.useMemo(() => {
+    if (!accounts || accounts.length === 0) return [defaultCurrency];
+    const set = new Set(accounts.map((a) => (a.currency || "USD").toUpperCase()));
+    return Array.from(set);
+  }, [accounts, defaultCurrency]);
+
+  const isMultiCurrency = isAllSelected && distinctCurrencies.length > 1;
 
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
   const [selectedDay, setSelectedDay] = React.useState<Date | null>(null);
@@ -41,7 +62,7 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
       const dateKey = `${tradeDate.getFullYear()}-${String(tradeDate.getMonth() + 1).padStart(2, "0")}-${String(
         tradeDate.getDate()
       ).padStart(2, "0")}`;
-      
+
       const existing = map.get(dateKey) || [];
       map.set(dateKey, [...existing, trade]);
     });
@@ -53,8 +74,6 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
   const lastDayOfMonth = new Date(year, month + 1, 0);
   const daysInMonth = lastDayOfMonth.getDate();
 
-  // 0 = Sunday, 1 = Monday, ... 6 = Saturday
-  // Let's align grid starting on Monday (1) to Sunday (0 -> 7)
   let startingDayOfWeek = firstDayOfMonth.getDay();
   if (startingDayOfWeek === 0) startingDayOfWeek = 7; // Sunday as 7th day
 
@@ -66,17 +85,38 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
     });
   }, [trades, year, month]);
 
+  // Monthly breakdown by currency
+  const monthlyCurrencyStats = React.useMemo(() => {
+    return distinctCurrencies.map((curr) => {
+      const currAccounts = accounts.filter((a) => (a.currency || "USD").toUpperCase() === curr);
+      const currAccountIds = new Set(currAccounts.map((a) => a.id));
+      const currTrades = isAllSelected
+        ? monthlyTrades.filter((t) => currAccountIds.has(t.accountId))
+        : monthlyTrades;
+
+      const netPnL = currTrades.reduce((acc, t) => acc + t.netPnL, 0);
+      const winning = currTrades.filter((t) => t.netPnL > 0);
+      const losing = currTrades.filter((t) => t.netPnL < 0);
+      const profit = winning.reduce((acc, t) => acc + t.netPnL, 0);
+      const loss = Math.abs(losing.reduce((acc, t) => acc + t.netPnL, 0));
+
+      return {
+        currency: curr,
+        netPnL,
+        profit,
+        loss,
+        tradeCount: currTrades.length,
+      };
+    });
+  }, [distinctCurrencies, accounts, monthlyTrades, isAllSelected]);
+
   const totalMonthlyPnL = monthlyTrades.reduce((acc, t) => acc + t.netPnL, 0);
-  const winningTrades = monthlyTrades.filter((t) => t.netPnL > 0);
-  const losingTrades = monthlyTrades.filter((t) => t.netPnL < 0);
-  const monthlyProfit = winningTrades.reduce((acc, t) => acc + t.netPnL, 0);
-  const monthlyLoss = Math.abs(losingTrades.reduce((acc, t) => acc + t.netPnL, 0));
   const totalClosed = monthlyTrades.length;
 
   // Best Day and Worst Day calculation
   const { bestDay, worstDay, profitDaysCount, lossDaysCount } = React.useMemo(() => {
-    let best = { date: "", pnl: -Infinity };
-    let worst = { date: "", pnl: Infinity };
+    let best = { date: "", pnl: -Infinity, tradeSummary: "" };
+    let worst = { date: "", pnl: Infinity, tradeSummary: "" };
     let profitDays = 0;
     let lossDays = 0;
 
@@ -84,12 +124,26 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
       const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const dayTrades = tradesByDate.get(dateKey) || [];
       if (dayTrades.length > 0) {
+        // Count day outcome
         const dayPnL = dayTrades.reduce((acc, t) => acc + t.netPnL, 0);
         if (dayPnL > 0) profitDays++;
         else if (dayPnL < 0) lossDays++;
 
-        if (dayPnL > best.pnl) best = { date: `${day} ${monthName.split(" ")[0]}`, pnl: dayPnL };
-        if (dayPnL < worst.pnl) worst = { date: `${day} ${monthName.split(" ")[0]}`, pnl: dayPnL };
+        // For best/worst calculation
+        if (dayPnL > best.pnl) {
+          best = {
+            date: `${day} ${monthName.split(" ")[0]}`,
+            pnl: dayPnL,
+            tradeSummary: `${dayTrades.length} Trade`,
+          };
+        }
+        if (dayPnL < worst.pnl) {
+          worst = {
+            date: `${day} ${monthName.split(" ")[0]}`,
+            pnl: dayPnL,
+            tradeSummary: `${dayTrades.length} Trade`,
+          };
+        }
       }
     }
 
@@ -105,7 +159,6 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
   const weeks: Array<Array<{ date: Date | null; dateKey: string; trades: SampleTrade[] }>> = [];
   let currentWeek: Array<{ date: Date | null; dateKey: string; trades: SampleTrade[] }> = [];
 
-  // Padding days from previous month
   for (let i = 1; i < startingDayOfWeek; i++) {
     currentWeek.push({ date: null, dateKey: `prev-${i}`, trades: [] });
   }
@@ -123,7 +176,6 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
     }
   }
 
-  // Padding days for end of month
   if (currentWeek.length > 0) {
     while (currentWeek.length < 7) {
       currentWeek.push({ date: null, dateKey: `next-${currentWeek.length}`, trades: [] });
@@ -131,7 +183,7 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
     weeks.push(currentWeek);
   }
 
-  const handleCellClick = (dayDate: Date | null, dayTrades: SampleTrade[]) => {
+  const handleCellClick = (dayDate: Date | null) => {
     if (!dayDate) return;
     setSelectedDay(dayDate);
     setIsDrawerOpen(true);
@@ -149,59 +201,103 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
     <div className="space-y-6">
       {/* Top Monthly Header KPI Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Net Monthly PnL */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl relative overflow-hidden">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Net Cuan Bulan Ini</div>
-          <div
-            className={cn(
-              "text-2xl font-extrabold font-mono mt-1",
-              totalMonthlyPnL > 0 ? "text-emerald-400" : totalMonthlyPnL < 0 ? "text-rose-400" : "text-white"
+        {/* 1. Net Monthly PnL */}
+        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              {isMultiCurrency && <Layers className="h-3 w-3 text-emerald-400" />}
+              <span>Net Cuan Bulan Ini</span>
+            </div>
+
+            {!isMultiCurrency ? (
+              <div
+                className={cn(
+                  "text-2xl font-extrabold font-mono mt-1",
+                  totalMonthlyPnL > 0 ? "text-emerald-400" : totalMonthlyPnL < 0 ? "text-rose-400" : "text-white"
+                )}
+              >
+                {formatSignedCurrency(totalMonthlyPnL, defaultCurrency)}
+              </div>
+            ) : (
+              <div className="mt-1.5 space-y-1">
+                {monthlyCurrencyStats.map((stat) => (
+                  <div key={stat.currency} className="flex items-center justify-between text-xs font-mono font-bold">
+                    <span className="text-slate-400">{stat.currency}:</span>
+                    <span className={stat.netPnL >= 0 ? "text-emerald-400" : "text-rose-400"}>
+                      {formatSignedCurrency(stat.netPnL, stat.currency)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
-          >
-            {formatSignedCurrency(totalMonthlyPnL, currency)}
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-1">
+
+          <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-2 pt-1.5 border-t border-slate-800/60">
             <span>{profitDaysCount} Hari Profit</span>
             <span>•</span>
             <span>{lossDaysCount} Hari Loss</span>
           </div>
         </div>
 
-        {/* Total Catatan Bulanan */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Catatan Bulan Ini</div>
-          <div className="text-2xl font-extrabold text-white font-mono mt-1">{totalClosed} Catatan</div>
-          <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1 font-mono">
-            <span className="text-emerald-400 font-bold">
-              {monthlyProfit > 0 ? `+${formatCurrency(monthlyProfit, currency)}` : formatCurrency(0, currency)}
-            </span>
-            <span>•</span>
-            <span className="text-rose-400 font-bold">
-              {monthlyLoss > 0 ? `-${formatCurrency(monthlyLoss, currency)}` : formatCurrency(0, currency)}
-            </span>
+        {/* 2. Total Catatan Bulanan */}
+        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between">
+          <div>
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Catatan Bulan Ini</div>
+            <div className="text-2xl font-extrabold text-white font-mono mt-1">{totalClosed} Catatan</div>
+          </div>
+
+          {!isMultiCurrency ? (
+            <div className="text-[11px] text-slate-400 mt-2 pt-1.5 border-t border-slate-800/60 flex items-center gap-1 font-mono">
+              <span className="text-emerald-400 font-bold">
+                +{formatCurrency(monthlyCurrencyStats[0]?.profit || 0, defaultCurrency)}
+              </span>
+              <span>•</span>
+              <span className="text-rose-400 font-bold">
+                -{formatCurrency(monthlyCurrencyStats[0]?.loss || 0, defaultCurrency)}
+              </span>
+            </div>
+          ) : (
+            <div className="text-[10px] text-slate-400 mt-2 pt-1.5 border-t border-slate-800/60 font-mono space-y-0.5">
+              {monthlyCurrencyStats.map((s) => (
+                <div key={s.currency} className="flex items-center justify-between">
+                  <span>{s.currency}:</span>
+                  <span className="text-emerald-400 font-bold">+{formatCompactCurrency(s.profit, s.currency, false)}</span>
+                  <span>/</span>
+                  <span className="text-rose-400 font-bold">-{formatCompactCurrency(s.loss, s.currency, false)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 3. Best Day */}
+        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between">
+          <div>
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 text-emerald-400">
+              <TrendingUp className="h-3 w-3" /> Best Day
+            </div>
+            <div className="text-lg font-bold text-emerald-400 font-mono mt-1">
+              {bestDay?.date || "Belum ada"}
+            </div>
+          </div>
+          <div className="text-[11px] text-slate-400 mt-2 pt-1.5 border-t border-slate-800/60 font-mono">
+            {bestDay ? (isMultiCurrency ? bestDay.tradeSummary : formatSignedCurrency(bestDay.pnl, defaultCurrency)) : "—"}
           </div>
         </div>
 
-        {/* Best Day */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 text-emerald-400">
-            <TrendingUp className="h-3 w-3" /> Best Day
+        {/* 4. Worst Day */}
+        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between">
+          <div>
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 text-rose-400">
+              <TrendingDown className="h-3 w-3" /> Worst Day
+            </div>
+            <div className="text-lg font-bold text-rose-400 font-mono mt-1">
+              {worstDay?.date || "Belum ada"}
+            </div>
           </div>
-          <div className="text-lg font-bold text-emerald-400 font-mono mt-1">
-            {bestDay ? formatSignedCurrency(bestDay.pnl, currency) : formatCurrency(0, currency)}
+          <div className="text-[11px] text-slate-400 mt-2 pt-1.5 border-t border-slate-800/60 font-mono">
+            {worstDay ? (isMultiCurrency ? worstDay.tradeSummary : formatSignedCurrency(worstDay.pnl, defaultCurrency)) : "—"}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">{bestDay?.date || "Belum ada"}</div>
-        </div>
-
-        {/* Worst Day */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-xl">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 text-rose-400">
-            <TrendingDown className="h-3 w-3" /> Worst Day
-          </div>
-          <div className="text-lg font-bold text-rose-400 font-mono mt-1">
-            {worstDay ? formatSignedCurrency(worstDay.pnl, currency) : formatCurrency(0, currency)}
-          </div>
-          <div className="text-[11px] text-slate-400 mt-1">{worstDay?.date || "Belum ada"}</div>
         </div>
       </div>
 
@@ -253,9 +349,17 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
             {/* Weeks Rows */}
             <div className="space-y-2">
               {weeks.map((week, weekIndex) => {
-                // Calculate weekly PnL
+                // Calculate weekly multi-currency breakdown
                 const weeklyTrades = week.flatMap((day) => day.trades);
-                const weeklyPnL = weeklyTrades.reduce((acc, t) => acc + t.netPnL, 0);
+                const weeklyCurrencies = distinctCurrencies.map((curr) => {
+                  const currAccounts = accounts.filter((a) => (a.currency || "USD").toUpperCase() === curr);
+                  const currAccountIds = new Set(currAccounts.map((a) => a.id));
+                  const currTrades = isAllSelected
+                    ? weeklyTrades.filter((t) => currAccountIds.has(t.accountId))
+                    : weeklyTrades;
+                  const pnl = currTrades.reduce((acc, t) => acc + t.netPnL, 0);
+                  return { curr, pnl, count: currTrades.length };
+                }).filter((item) => item.count > 0);
 
                 return (
                   <div key={`week-${weekIndex}`} className="grid grid-cols-8 gap-2">
@@ -272,16 +376,27 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
 
                       const dayTrades = dayItem.trades;
                       const hasTrades = dayTrades.length > 0;
-                      const dayPnL = dayTrades.reduce((acc, t) => acc + t.netPnL, 0);
-                      const isProfit = dayPnL > 0;
-                      const isLoss = dayPnL < 0;
-                      const isToday =
-                        dayItem.date.toDateString() === new Date().toDateString();
+                      const isToday = dayItem.date.toDateString() === new Date().toDateString();
+
+                      // Group day trades by currency
+                      const dayCurrencies = distinctCurrencies.map((curr) => {
+                        const currAccounts = accounts.filter((a) => (a.currency || "USD").toUpperCase() === curr);
+                        const currAccountIds = new Set(currAccounts.map((a) => a.id));
+                        const currTrades = isAllSelected
+                          ? dayTrades.filter((t) => currAccountIds.has(t.accountId))
+                          : dayTrades;
+                        const pnl = currTrades.reduce((acc, t) => acc + t.netPnL, 0);
+                        return { curr, pnl, count: currTrades.length };
+                      }).filter((item) => item.count > 0);
+
+                      const dayTotalPnL = dayTrades.reduce((acc, t) => acc + t.netPnL, 0);
+                      const isProfit = dayTotalPnL > 0;
+                      const isLoss = dayTotalPnL < 0;
 
                       return (
                         <button
                           key={dayItem.dateKey}
-                          onClick={() => handleCellClick(dayItem.date, dayTrades)}
+                          onClick={() => handleCellClick(dayItem.date)}
                           className={cn(
                             "h-24 p-2 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between group cursor-pointer relative overflow-hidden",
                             isToday && "ring-2 ring-emerald-400/50",
@@ -319,17 +434,37 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
                             )}
                           </div>
 
-                          {/* Bottom: P&L Value */}
+                          {/* Bottom: P&L Value (Single or Multi-Currency Lines) */}
                           <div className="w-full">
                             {hasTrades ? (
-                              <div
-                                className={cn(
-                                  "font-mono font-extrabold text-xs sm:text-sm tracking-tight truncate",
-                                  isProfit ? "text-emerald-400" : isLoss ? "text-rose-400" : "text-slate-400"
-                                )}
-                              >
-                                {formatSignedCurrency(dayPnL, currency)}
-                              </div>
+                              dayCurrencies.length === 1 ? (
+                                <div
+                                  className={cn(
+                                    "font-mono font-extrabold text-xs sm:text-sm tracking-tight truncate",
+                                    dayCurrencies[0].pnl > 0
+                                      ? "text-emerald-400"
+                                      : dayCurrencies[0].pnl < 0
+                                      ? "text-rose-400"
+                                      : "text-slate-400"
+                                  )}
+                                >
+                                  {formatCompactCurrency(dayCurrencies[0].pnl, dayCurrencies[0].curr)}
+                                </div>
+                              ) : (
+                                <div className="space-y-0.5">
+                                  {dayCurrencies.map((item) => (
+                                    <div
+                                      key={item.curr}
+                                      className={cn(
+                                        "font-mono font-bold text-[10px] tracking-tight truncate",
+                                        item.pnl > 0 ? "text-emerald-400" : item.pnl < 0 ? "text-rose-400" : "text-slate-400"
+                                      )}
+                                    >
+                                      {formatCompactCurrency(item.pnl, item.curr)}
+                                    </div>
+                                  ))}
+                                </div>
+                              )
                             ) : (
                               <div className="text-[10px] text-slate-600 font-mono">—</div>
                             )}
@@ -343,17 +478,43 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
                       className={cn(
                         "h-24 p-2.5 rounded-2xl border flex flex-col justify-between text-right",
                         weeklyTrades.length > 0
-                          ? weeklyPnL > 0
-                            ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-400"
-                            : weeklyPnL < 0
-                            ? "bg-rose-950/20 border-rose-500/30 text-rose-400"
-                            : "bg-slate-900/60 border-slate-800 text-slate-400"
+                          ? "bg-slate-900/60 border-slate-800 text-slate-300"
                           : "bg-slate-950/20 border-slate-800/40 text-slate-600"
                       )}
                     >
                       <div className="text-[10px] uppercase font-bold text-slate-400">Week {weekIndex + 1}</div>
-                      <div className="font-mono font-extrabold text-xs sm:text-sm">
-                        {weeklyTrades.length > 0 ? formatSignedCurrency(weeklyPnL, currency) : "—"}
+                      
+                      <div className="w-full">
+                        {weeklyTrades.length === 0 ? (
+                          <div className="font-mono font-extrabold text-xs text-slate-600">—</div>
+                        ) : weeklyCurrencies.length === 1 ? (
+                          <div
+                            className={cn(
+                              "font-mono font-extrabold text-xs sm:text-sm",
+                              weeklyCurrencies[0].pnl > 0
+                                ? "text-emerald-400"
+                                : weeklyCurrencies[0].pnl < 0
+                                ? "text-rose-400"
+                                : "text-slate-400"
+                            )}
+                          >
+                            {formatCompactCurrency(weeklyCurrencies[0].pnl, weeklyCurrencies[0].curr)}
+                          </div>
+                        ) : (
+                          <div className="space-y-0.5">
+                            {weeklyCurrencies.map((item) => (
+                              <div
+                                key={item.curr}
+                                className={cn(
+                                  "font-mono font-bold text-[10px]",
+                                  item.pnl > 0 ? "text-emerald-400" : item.pnl < 0 ? "text-rose-400" : "text-slate-400"
+                                )}
+                              >
+                                {formatCompactCurrency(item.pnl, item.curr)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -370,7 +531,8 @@ export function PnLCalendar({ trades, onOpenNewTrade, currency: propCurrency }: 
         onClose={() => setIsDrawerOpen(false)}
         date={selectedDay}
         trades={selectedDayTrades}
-        currency={currency}
+        currency={defaultCurrency}
+        accounts={accounts}
       />
     </div>
   );

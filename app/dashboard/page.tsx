@@ -11,14 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatSignedCurrency, cn } from "@/lib/utils";
 import {
   Plus,
-  Upload,
   Share2,
-  Calendar as CalendarIcon,
   TrendingUp,
   TrendingDown,
   ArrowRight,
   Sparkles,
   Wallet,
+  Filter,
+  Layers,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { EditBalanceModal } from "@/components/tools/edit-balance-modal";
 
@@ -72,13 +74,61 @@ export default function DashboardPage() {
   const { trades, accounts, selectedAccountId, openNewTradeModal, openCuanCardModal, refreshAccounts, isLoading } = useAppShell();
   const [isEditBalanceOpen, setIsEditBalanceOpen] = React.useState(false);
 
+  const isAllSelected = !selectedAccountId || selectedAccountId === "all";
+
+  // Portfolio filters when "Semua Portofolio" is selected
+  const [typeFilter, setTypeFilter] = React.useState<string>("ALL");
+  const [currencyFilter, setCurrencyFilter] = React.useState<string>("ALL");
+
+  // Check if user has at least one Real trading account
+  const hasRealAccount = React.useMemo(() => {
+    return accounts.some((a) => (a.accountType || "").toLowerCase() === "real");
+  }, [accounts]);
+
+  const [isRealAlertDismissed, setIsRealAlertDismissed] = React.useState(false);
+
+  // Distinct currencies across accounts
+  const availableCurrencies = React.useMemo(() => {
+    const set = new Set(accounts.map((a) => (a.currency || "USD").toUpperCase()));
+    return Array.from(set);
+  }, [accounts]);
+
+  // Distinct account types across accounts
+  const availableAccountTypes = React.useMemo(() => {
+    const set = new Set(accounts.map((a) => a.accountType || "Real"));
+    return Array.from(set);
+  }, [accounts]);
+
+  // Filtered accounts based on user selections
+  const filteredAccounts = React.useMemo(() => {
+    if (!isAllSelected) {
+      const single = accounts.find((a) => a.id === selectedAccountId);
+      return single ? [single] : accounts;
+    }
+
+    return accounts.filter((acc) => {
+      const matchesType =
+        typeFilter === "ALL" || (acc.accountType || "Real").toLowerCase() === typeFilter.toLowerCase();
+      const matchesCurrency =
+        currencyFilter === "ALL" || (acc.currency || "USD").toUpperCase() === currencyFilter.toUpperCase();
+      return matchesType && matchesCurrency;
+    });
+  }, [accounts, isAllSelected, selectedAccountId, typeFilter, currencyFilter]);
+
+  // Filtered trades matching the filtered accounts
+  const filteredTrades = React.useMemo(() => {
+    if (!isAllSelected) return trades;
+    const allowedAccountIds = new Set(filteredAccounts.map((a) => a.id));
+    return trades.filter((t) => allowedAccountIds.has(t.accountId));
+  }, [trades, isAllSelected, filteredAccounts]);
+
   const recentTrades = React.useMemo(() => {
-    return [...trades]
+    return [...filteredTrades]
       .sort((a, b) => new Date(b.openTime).getTime() - new Date(a.openTime).getTime())
       .slice(0, 5);
-  }, [trades]);
+  }, [filteredTrades]);
 
-  // Determine base initial balance and currency for calculations
+  // Determine base initial balance and currency for single account calculations
   const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
   const initialBaseBalance = activeAccount?.initialBalance || activeAccount?.currentBalance || 10000;
   const accountCurrency = activeAccount?.currency || "USD";
@@ -173,22 +223,160 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards (with % gain calculation & edit modal trigger) */}
+      {/* Warning Alert: Belum Membuat Akun Real */}
+      {!isLoading && accounts.length > 0 && !hasRealAccount && !isRealAlertDismissed && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950/40 via-[#111624] to-[#0a0d16] border border-amber-500/40 shadow-2xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
+          {/* Ambient Amber Glow */}
+          <div className="absolute -left-6 -top-6 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="flex items-start gap-3.5 relative z-10">
+            <div className="h-10 w-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5 shadow-md shadow-amber-500/10">
+              <AlertTriangle className="h-5 w-5 stroke-[2.2]" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-extrabold text-white">
+                  Peringatan: Kamu Belum Memiliki Akun Trading Real!
+                </span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  Mode Demo Aktif
+                </span>
+              </div>
+              <p className="text-xs text-slate-300/90 max-w-2xl leading-relaxed">
+                Saat ini catatan transaksi kamu hanya berada di akun Demo/Latihan. Untuk mulai mengukur pertumbuhan modal uang sungguhan dan membangun psikologi trading yang disiplin, buat akun Real kamu sekarang.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 relative z-10 shrink-0 self-end sm:self-center">
+            <Link href="/settings?action=new-account&type=real#accounts-section">
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-bold shadow-lg shadow-amber-500/20 cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5 stroke-[3]" />
+                <span>Buat Akun Real</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsRealAlertDismissed(true)}
+              className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl cursor-pointer"
+              title="Tutup Peringatan"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Filter Bar when "Semua Portofolio" is selected */}
+      {isAllSelected && accounts.length > 1 && (
+        <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-xl flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
+            <Layers className="h-4 w-4 text-emerald-400" />
+            <span>Filter Portofolio Gabungan:</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Tipe Akun Filters */}
+            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs">
+              <button
+                onClick={() => setTypeFilter("ALL")}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
+                  typeFilter === "ALL"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                    : "text-slate-400 hover:text-white"
+                )}
+              >
+                Semua Tipe
+              </button>
+              {availableAccountTypes.map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setTypeFilter(type)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
+                    typeFilter.toLowerCase() === type.toLowerCase()
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+
+            {/* Mata Uang Filters (if multiple currencies exist) */}
+            {availableCurrencies.length > 1 && (
+              <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs">
+                <button
+                  onClick={() => setCurrencyFilter("ALL")}
+                  className={cn(
+                    "px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer",
+                    currencyFilter === "ALL"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  Semua Currency
+                </button>
+                {availableCurrencies.map((curr) => (
+                  <button
+                    key={curr}
+                    onClick={() => setCurrencyFilter(curr)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg font-bold font-mono transition-all cursor-pointer",
+                      currencyFilter === curr
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                        : "text-slate-400 hover:text-white"
+                    )}
+                  >
+                    {curr}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* KPI Cards (Multi-Currency & % ROI aware) */}
       <KPISummaryCards
-        trades={trades}
+        trades={filteredTrades}
         initialBalance={initialBaseBalance}
         currency={accountCurrency}
+        accounts={filteredAccounts}
+        selectedAccountId={selectedAccountId}
+        typeFilter={typeFilter}
+        currencyFilter={currencyFilter}
         onOpenEditBalance={() => setIsEditBalanceOpen(true)}
       />
 
       {/* 1. Interactive P&L Calendar (Full Width) */}
-      <PnLCalendar trades={trades} currency={accountCurrency} onOpenNewTrade={openNewTradeModal} />
+      <PnLCalendar
+        trades={filteredTrades}
+        currency={accountCurrency}
+        accounts={filteredAccounts}
+        selectedAccountId={selectedAccountId}
+        onOpenNewTrade={openNewTradeModal}
+      />
 
       {/* 2. Split Row: Equity Curve (2 Cols) & Recent Trades (1 Col) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Equity Curve Chart */}
         <div className="lg:col-span-2">
-          <EquityCurveChart trades={trades} initialBalance={initialBaseBalance} currency={accountCurrency} />
+          <EquityCurveChart
+            trades={filteredTrades}
+            initialBalance={initialBaseBalance}
+            currency={accountCurrency}
+            accounts={filteredAccounts}
+            selectedAccountId={selectedAccountId}
+          />
         </div>
 
         {/* Recent Trades Box */}
@@ -228,6 +416,9 @@ export default function DashboardPage() {
                   }).format(dateObj);
 
                   const notes = trade.notes || trade.strategyName || "Catatan Transaksi";
+                  const tradeAccount = accounts.find((a) => a.id === trade.accountId);
+                  const tradeCurrency = tradeAccount?.currency || accountCurrency;
+                  const accType = tradeAccount?.accountType || "Real";
 
                   return (
                     <div
@@ -247,7 +438,14 @@ export default function DashboardPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-semibold text-xs text-white truncate">{notes}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">{timeFormatted}</div>
+                          <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                            <span>{timeFormatted}</span>
+                            {isAllSelected && tradeAccount && (
+                              <span className="text-[9px] px-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                {tradeAccount.name} ({accType})
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -258,7 +456,7 @@ export default function DashboardPage() {
                             isWin ? "text-emerald-400" : isLoss ? "text-rose-400" : "text-slate-400"
                           )}
                         >
-                          {formatSignedCurrency(trade.netPnL, accountCurrency)}
+                          {formatSignedCurrency(trade.netPnL, tradeCurrency)}
                         </span>
                       </div>
                     </div>
@@ -281,7 +479,12 @@ export default function DashboardPage() {
       </div>
 
       {/* 3. Breakdown Charts (Performa per Hari & Arus Kas Pemasukan vs Pengeluaran) */}
-      <BreakdownCharts trades={trades} currency={accountCurrency} />
+      <BreakdownCharts
+        trades={filteredTrades}
+        currency={accountCurrency}
+        accounts={filteredAccounts}
+        selectedAccountId={selectedAccountId}
+      />
 
       {/* 4. Visual Forex Market Sessions Clock (Full Width at Bottom) */}
       <MarketSessionsClock />
