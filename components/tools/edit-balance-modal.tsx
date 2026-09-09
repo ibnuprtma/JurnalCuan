@@ -170,7 +170,7 @@ export function EditBalanceModal({
             >
               {realAccounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
-                  {acc.name} ({acc.broker || "Forex"}) — {acc.currency || "USD"}
+                  {acc.name} — {acc.broker && acc.broker !== "-" ? acc.broker : "Forex"} — {acc.accountType || "Real"} ({acc.currency || "USD"})
                 </option>
               ))}
             </select>

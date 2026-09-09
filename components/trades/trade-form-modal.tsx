@@ -21,7 +21,7 @@ interface TradeFormModalProps {
   onClose: () => void;
   onSaveTrade: (tradeData: any) => Promise<void> | void;
   selectedAccountId?: string;
-  accounts?: Array<{ id: string; name: string; broker?: string | null; currency?: string }>;
+  accounts?: Array<{ id: string; name: string; broker?: string | null; currency?: string; accountType?: string | null }>;
 }
 
 export function TradeFormModal({
@@ -146,7 +146,7 @@ export function TradeFormModal({
                 .filter((a) => a.id !== "all")
                 .map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.name} ({acc.broker || "Forex"}) — {acc.currency || "USD"}
+                    {acc.name} — {acc.broker && acc.broker !== "-" ? acc.broker : "Forex"} — {acc.accountType || "Real"} ({acc.currency || "USD"})
                   </option>
                 ))}
             </select>
