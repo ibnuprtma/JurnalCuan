@@ -69,7 +69,7 @@ const MarketSessionsClock = dynamic(
 );
 
 export default function DashboardPage() {
-  const { trades, accounts, selectedAccountId, openNewTradeModal, openCuanCardModal, refreshAccounts } = useAppShell();
+  const { trades, accounts, selectedAccountId, openNewTradeModal, openCuanCardModal, refreshAccounts, isLoading } = useAppShell();
   const [isEditBalanceOpen, setIsEditBalanceOpen] = React.useState(false);
 
   const recentTrades = React.useMemo(() => {
@@ -82,6 +82,37 @@ export default function DashboardPage() {
   const activeAccount = accounts.find((a) => a.id === selectedAccountId) || accounts[0];
   const initialBaseBalance = activeAccount?.initialBalance || activeAccount?.currentBalance || 10000;
   const accountCurrency = activeAccount?.currency || "USD";
+
+  if (isLoading && accounts.length === 0) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        {/* Top bar skeleton */}
+        <div className="h-24 rounded-3xl border border-slate-800/80 bg-slate-900/60 p-6 flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-5 w-52 bg-slate-800 rounded-lg" />
+            <div className="h-3.5 w-80 bg-slate-800/60 rounded-lg" />
+          </div>
+          <div className="h-9 w-32 bg-slate-800 rounded-xl" />
+        </div>
+
+        {/* 4 KPI cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 rounded-3xl border border-slate-800/80 bg-slate-900/60 p-5 space-y-3">
+              <div className="h-3 w-28 bg-slate-800 rounded" />
+              <div className="h-6 w-36 bg-slate-800/80 rounded" />
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar skeleton */}
+        <div className="h-96 rounded-3xl border border-slate-800/80 bg-slate-900/60 p-6 flex flex-col justify-center items-center gap-3 text-slate-500">
+          <div className="h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
+          <span className="text-xs font-medium">Memuat data portofolio trading kamu...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

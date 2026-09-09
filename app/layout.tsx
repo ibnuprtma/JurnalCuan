@@ -32,6 +32,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,6 +43,7 @@ export default function RootLayout({
     <html lang="id" className="dark">
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-[#080b11] text-slate-100 min-h-screen`}>
         <AppShell>{children}</AppShell>
+        <Toaster position="top-right" richColors theme="dark" />
       </body>
     </html>
   );

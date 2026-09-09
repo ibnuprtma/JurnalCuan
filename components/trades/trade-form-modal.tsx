@@ -13,12 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatSignedCurrency, getCurrencySymbol, cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Calendar, Wallet, FileText, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Calendar, Wallet, FileText, Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface TradeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveTrade: (tradeData: any) => void;
+  onSaveTrade: (tradeData: any) => Promise<void> | void;
   selectedAccountId?: string;
   accounts?: Array<{ id: string; name: string; broker?: string | null; currency?: string }>;
 }
@@ -88,18 +89,32 @@ export function TradeFormModal({
     setAmount(val.toString());
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (numericAmount <= 0) return;
+    if (numericAmount <= 0 || isSubmitting) return;
 
-    onSaveTrade({
-      netPnL: calculatedPnL,
-      notes: notes.trim() || undefined,
-      openTime: dateTime ? new Date(dateTime).toISOString() : new Date().toISOString(),
-      accountId: targetAccountId || undefined,
-    });
+    setIsSubmitting(true);
+    try {
+      await onSaveTrade({
+        netPnL: calculatedPnL,
+        notes: notes.trim() || undefined,
+        openTime: dateTime ? new Date(dateTime).toISOString() : new Date().toISOString(),
+        accountId: targetAccountId || undefined,
+      });
 
-    onClose();
+      toast.success(
+        transactionType === "PROFIT"
+          ? `Cuan ${formatSignedCurrency(calculatedPnL, accountCurrency)} berhasil dicatat! 🎉`
+          : `Catatan pengeluaran ${formatSignedCurrency(calculatedPnL, accountCurrency)} disimpan.`
+      );
+      onClose();
+    } catch (err) {
+      toast.error("Gagal menyimpan transaksi, silakan coba lagi.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -289,6 +304,7 @@ export function TradeFormModal({
             type="button"
             variant="ghost"
             onClick={onClose}
+            disabled={isSubmitting}
             className="text-xs text-slate-400 hover:text-white"
           >
             Batal
@@ -296,15 +312,22 @@ export function TradeFormModal({
 
           <Button
             type="submit"
-            disabled={numericAmount <= 0}
+            disabled={numericAmount <= 0 || isSubmitting}
             className={cn(
-              "text-xs font-bold text-slate-950 shadow-lg transition-all",
+              "text-xs font-bold shadow-lg transition-all min-w-[140px]",
               transactionType === "PROFIT"
-                ? "bg-emerald-500 hover:bg-emerald-400 shadow-emerald-500/20"
+                ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20"
                 : "bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20"
             )}
           >
-            Simpan Catatan
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Menyimpan Catatan...</span>
+              </span>
+            ) : (
+              <span>Simpan Catatan</span>
+            )}
           </Button>
         </DialogFooter>
       </form>

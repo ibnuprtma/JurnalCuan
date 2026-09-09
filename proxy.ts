@@ -40,6 +40,18 @@ export async function proxy(request: NextRequest) {
 
   // Izinkan semua route publik dan file asset tanpa pengecekan sesi
   if (isPublicRoute(pathname)) {
+    // Jika pengguna sudah memiliki sesi login aktif dan mengakses '/', langsung alihkan ke /dashboard
+    if (pathname === "/") {
+      const sessionCookie = request.cookies.get("__session") || request.cookies.get("appSession");
+      if (sessionCookie) {
+        try {
+          const session = await auth0.getSession(request);
+          if (session?.user) {
+            return NextResponse.redirect(new URL("/dashboard", request.nextUrl.origin));
+          }
+        } catch {}
+      }
+    }
     return await auth0.middleware(request);
   }
 

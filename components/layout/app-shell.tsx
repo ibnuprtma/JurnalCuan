@@ -25,6 +25,7 @@ interface AppShellContextValue {
   handleDeleteTrade: (tradeId: string) => Promise<void>;
   handleImportComplete: (importedTrades: SampleTrade[]) => void;
   refreshAccounts: () => void;
+  isLoading: boolean;
 }
 
 export const AppShellContext = React.createContext<AppShellContextValue | undefined>(undefined);
@@ -86,17 +87,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+
   // Load trades on mount (hanya untuk halaman aplikasi berautentikasi, lewati di Landing Page / Share Page)
   React.useEffect(() => {
-    if (pathname === "/" || isPublicShareRoute) return;
+    if (pathname === "/" || isPublicShareRoute) {
+      setIsLoading(false);
+      return;
+    }
 
     async function loadData() {
       try {
-        const fetchedTrades = await fetchTradesClient(selectedAccountId || undefined);
-        setTrades(fetchedTrades || []);
-        await loadAccounts();
+        setIsLoading(true);
+        const [fetchedTrades] = await Promise.all([
+          fetchTradesClient(selectedAccountId || undefined),
+          loadAccounts(),
+        ]);
+        if (fetchedTrades) {
+          setTrades(fetchedTrades);
+        }
       } catch (e) {
         console.warn("Error loading live database trades:", e);
+      } finally {
+        setIsLoading(false);
       }
     }
     loadData();
@@ -149,6 +162,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           handleDeleteTrade,
           handleImportComplete,
           refreshAccounts: loadAccounts,
+          isLoading,
         }}
       >
         <main className="min-h-screen bg-[#080b11] text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300">
@@ -172,6 +186,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         handleDeleteTrade,
         handleImportComplete,
         refreshAccounts: loadAccounts,
+        isLoading,
       }}
     >
       <div className="flex min-h-screen bg-[#080b11] text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300">

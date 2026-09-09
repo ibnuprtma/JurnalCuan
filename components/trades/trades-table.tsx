@@ -18,7 +18,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface TradesTableProps {
   trades: SampleTrade[];
@@ -83,9 +85,19 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
     }
   };
 
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
+
   const onDeleteClick = async (tradeId: string) => {
     if (confirm("Hapus catatan transaksi ini?")) {
-      await handleDeleteTrade(tradeId);
+      setDeletingId(tradeId);
+      try {
+        await handleDeleteTrade(tradeId);
+        toast.success("Catatan transaksi berhasil dihapus.");
+      } catch (err) {
+        toast.error("Gagal menghapus transaksi.");
+      } finally {
+        setDeletingId(null);
+      }
     }
   };
 
@@ -242,11 +254,16 @@ export function TradesTable({ trades, onOpenNewTrade }: TradesTableProps) {
                         <Button
                           variant="ghost"
                           size="icon"
+                          disabled={deletingId === trade.id}
                           onClick={() => onDeleteClick(trade.id)}
-                          className="h-7 w-7 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg opacity-80 group-hover:opacity-100 transition-all"
+                          className="h-7 w-7 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg opacity-80 group-hover:opacity-100 transition-all cursor-pointer"
                           title="Hapus Catatan"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          {deletingId === trade.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-rose-400" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
                         </Button>
                       </td>
                     </tr>

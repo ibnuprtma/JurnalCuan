@@ -52,6 +52,8 @@ export default function WelcomeLandingPage() {
           const data = await res.json();
           if (data.authenticated && data.user) {
             setAuthUser(data.user);
+            // Langsung alihkan pengguna yang sudah login ke Dashboard tanpa jeda
+            window.location.replace("/dashboard");
           }
         }
       } catch (e) {
@@ -240,7 +242,7 @@ export default function WelcomeLandingPage() {
             // Primary Auth0 Login Button
             <div className="w-full space-y-3">
               <a
-                href="/auth/login"
+                href="/auth/login?returnTo=/dashboard"
                 className="relative group w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 bg-[length:200%_auto] hover:bg-[position:right_center] text-slate-950 font-black text-base flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
               >
                 <LogIn className="h-5 w-5 flex-shrink-0" />
