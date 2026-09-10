@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Clock,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function WelcomeLandingPage() {
   const [showSplash, setShowSplash] = React.useState(true);
@@ -182,13 +183,16 @@ export default function WelcomeLandingPage() {
           </div>
         </div>
 
-        {/* Live WIB Clock */}
-        {currentTime && (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-800/80 bg-slate-900/60 backdrop-blur-md text-xs text-slate-300 font-mono">
-            <Clock className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-            <span>{currentTime}</span>
-          </div>
-        )}
+        {/* Live WIB Clock & Theme Toggle */}
+        <div className="flex items-center gap-2.5">
+          {currentTime && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-800/80 bg-slate-900/60 backdrop-blur-md text-xs text-slate-300 font-mono">
+              <Clock className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+              <span>{currentTime}</span>
+            </div>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* ========================================================================= */}

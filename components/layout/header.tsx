@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export interface TradingAccountOption {
   id: string;
@@ -270,8 +271,8 @@ export function Header({
           <span>{currentTime || "Loading WIB..."}</span>
         </div>
 
-
-
+        {/* Theme Toggle Button */}
+        <ThemeToggle />
         {/* Auth0 Login / User Profile Menu */}
         {!isAuthLoading && (
           <div className="relative">

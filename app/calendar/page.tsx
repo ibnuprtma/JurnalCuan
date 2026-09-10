@@ -16,8 +16,8 @@ export default function CalendarPage() {
       {/* Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Kalender Cuan Harian</h1>
-          <p className="text-xs text-slate-400">
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Kalender Cuan Harian</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Visualisasi performa profit dan loss harian dalam matriks kalender interaktif
           </p>
         </div>

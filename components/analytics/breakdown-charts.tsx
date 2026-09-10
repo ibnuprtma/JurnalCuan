@@ -109,11 +109,11 @@ export function BreakdownCharts({
     <div className="space-y-3">
       {/* If multi-currency, show currency switch pills */}
       {isMultiCurrency && (
-        <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-          <span className="text-xs text-slate-400 font-medium">
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+          <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
             Pilih Mata Uang untuk Grafik Breakdown:
           </span>
-          <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/80 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
             {distinctCurrencies.map((curr) => (
               <button
                 key={curr}
@@ -121,8 +121,8 @@ export function BreakdownCharts({
                 className={cn(
                   "px-3 py-1 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer",
                   selectedCurrency === curr
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-white dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 )}
               >
                 {curr}
@@ -141,7 +141,7 @@ export function BreakdownCharts({
               <p className="text-xs text-slate-400">Akumulasi net cuan berdasarkan hari transaksi (Senin s/d Minggu)</p>
             </div>
             {isMultiCurrency && (
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700">
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-slate-200 dark:border-slate-700">
                 {activeCurrency}
               </span>
             )}
@@ -170,10 +170,10 @@ export function BreakdownCharts({
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-2.5 shadow-xl text-xs font-mono">
-                          <div className="text-slate-200 font-bold font-sans">{data.name}</div>
-                          <div className="text-slate-400 font-sans">{data.count} Transaksi</div>
-                          <div className={`font-bold mt-1 ${data.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/90 p-2.5 shadow-xl text-xs font-mono">
+                          <div className="text-slate-800 dark:text-slate-200 font-bold font-sans">{data.name}</div>
+                          <div className="text-slate-500 dark:text-slate-400 font-sans">{data.count} Transaksi</div>
+                          <div className={`font-bold mt-1 ${data.pnl >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                             Net: {formatSignedCurrency(data.pnl, activeCurrency)}
                           </div>
                         </div>

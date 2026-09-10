@@ -8,27 +8,27 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "border-transparent bg-slate-800 text-slate-200 hover:bg-slate-700",
+          "border-transparent bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700",
         profit:
-          "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium",
+          "border-emerald-300 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-medium",
         loss:
-          "border-rose-500/30 bg-rose-500/10 text-rose-400 font-medium",
+          "border-rose-300 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 font-medium",
         be:
-          "border-slate-700 bg-slate-800/80 text-slate-300 font-medium",
+          "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-medium",
         buy:
-          "border-emerald-500/40 bg-emerald-500/20 text-emerald-300 font-bold",
+          "border-emerald-300 dark:border-emerald-500/40 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold",
         sell:
-          "border-rose-500/40 bg-rose-500/20 text-rose-300 font-bold",
+          "border-rose-300 dark:border-rose-500/40 bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 font-bold",
         secondary:
-          "border-transparent bg-slate-800/80 text-slate-300",
+          "border-transparent bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300",
         outline:
-          "border-slate-700 text-slate-300",
+          "border-slate-200 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-300",
         amber:
-          "border-amber-500/30 bg-amber-500/10 text-amber-400 font-medium",
+          "border-amber-300 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-400 font-medium",
         blue:
-          "border-blue-500/30 bg-blue-500/10 text-blue-400 font-medium",
+          "border-blue-300 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-400 font-medium",
         purple:
-          "border-purple-500/30 bg-purple-500/10 text-purple-400 font-medium",
+          "border-purple-300 dark:border-purple-500/30 bg-purple-50 dark:bg-purple-500/10 text-purple-800 dark:text-purple-400 font-medium",
       },
     },
     defaultVariants: {

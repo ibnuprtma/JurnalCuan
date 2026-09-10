@@ -206,37 +206,37 @@ export function MarketSessionsClock() {
 
         {/* Clocks */}
         <div className="flex items-center gap-2">
-          <div className="px-3.5 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-right">
-            <div className="text-[10px] text-slate-400 font-semibold uppercase">Waktu Jakarta (WIB)</div>
-            <div className="text-sm font-bold text-emerald-400 font-mono">{wibTimeString} WIB</div>
+          <div className="px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-right transition-colors">
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">Waktu Jakarta (WIB)</div>
+            <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">{wibTimeString} WIB</div>
           </div>
-          <div className="px-3.5 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-right hidden sm:block">
-            <div className="text-[10px] text-slate-400 font-semibold uppercase">Waktu Global (UTC)</div>
-            <div className="text-sm font-bold text-slate-300 font-mono">{utcTimeString} UTC</div>
+          <div className="px-3.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-right hidden sm:block transition-colors">
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">Waktu Global (UTC)</div>
+            <div className="text-sm font-bold text-slate-700 dark:text-slate-300 font-mono">{utcTimeString} UTC</div>
           </div>
         </div>
       </div>
 
       {/* London-NY Overlap Special Golden Banner */}
       {isOverlapActive && (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-red-500/15 border border-amber-500/40 flex items-center justify-between gap-4 animate-in fade-in shadow-xl">
+        <div className="p-4 rounded-2xl bg-amber-50/80 dark:bg-gradient-to-r dark:from-amber-500/15 dark:via-orange-500/10 dark:to-red-500/15 border border-amber-300 dark:border-amber-500/40 flex items-center justify-between gap-4 animate-in fade-in shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 flex-shrink-0 animate-bounce">
-              <Flame className="h-5 w-5 fill-amber-400" />
+            <div className="h-10 w-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 flex-shrink-0 animate-bounce">
+              <Flame className="h-5 w-5 fill-amber-500" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm text-white">London – New York Overlap Sedang Berlangsung!</span>
+                <span className="font-extrabold text-sm text-slate-900 dark:text-white">London – New York Overlap Sedang Berlangsung!</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-black uppercase tracking-wider">
                   Golden Hours (19:00 - 23:00 WIB)
                 </span>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
                 Volatilitas & likuiditas pasar forex tertinggi saat ini. Spread paling tipis untuk pair EUR/USD, GBP/USD, dan XAU/USD.
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="hidden md:flex border-amber-500/50 text-amber-300 font-mono text-xs">
+          <Badge variant="outline" className="hidden md:flex border-amber-500/40 text-amber-700 dark:text-amber-300 font-mono text-xs">
             Sesi Bersama Aktif
           </Badge>
         </div>
@@ -270,10 +270,10 @@ export function MarketSessionsClock() {
           return (
             <div
               key={session.id}
-              className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between space-y-4 shadow-lg ${
+              className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between space-y-4 shadow-sm ${
                 isOpen
-                  ? "border-emerald-500/40 bg-gradient-to-b from-emerald-500/10 via-slate-900/80 to-slate-950"
-                  : "border-slate-800/80 bg-slate-950/60 opacity-80 hover:opacity-100"
+                  ? "border-emerald-300 dark:border-emerald-500/40 bg-gradient-to-b from-emerald-50/80 via-white to-white dark:from-emerald-500/10 dark:via-slate-900/80 dark:to-slate-950 ring-1 ring-emerald-500/20"
+                  : "border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-950/60 opacity-90 hover:opacity-100"
               }`}
             >
               {/* Header: Flag, City, Status */}
@@ -281,20 +281,22 @@ export function MarketSessionsClock() {
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{session.flag}</span>
                   <div>
-                    <h3 className="font-extrabold text-sm text-white">{session.name}</h3>
-                    <p className="text-[10px] text-slate-400">{session.city}, {session.country}</p>
+                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">{session.name}</h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">{session.city}, {session.country}</p>
                   </div>
                 </div>
 
                 <Badge
                   variant={isOpen ? "profit" : "secondary"}
                   className={`text-[10px] font-bold ${
-                    isOpen ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-slate-800 text-slate-400"
+                    isOpen
+                      ? "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+                      : "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400"
                   }`}
                 >
                   {isOpen ? (
                     <span className="flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping" />
                       BUKA
                     </span>
                   ) : (
@@ -306,21 +308,21 @@ export function MarketSessionsClock() {
               {/* Time Details Section */}
               <div className="space-y-2">
                 {/* Primary: Jam Operasional WIB */}
-                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1">
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold uppercase">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-1 transition-colors">
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase">
                     <span>Jam Operasional WIB</span>
-                    <span className="text-emerald-400 font-mono">Vol: {session.volumeShare}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-mono">Vol: {session.volumeShare}</span>
                   </div>
-                  <div className="text-sm font-bold text-white font-mono flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5 text-emerald-400" />
+                  <div className="text-sm font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>{session.wibHoursSummer}</span>
                   </div>
                 </div>
 
                 {/* Secondary: Jam Lokal di Kota Asal */}
-                <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1">
                   <span>Waktu di {session.city}:</span>
-                  <span className="font-mono text-slate-200 font-semibold">
+                  <span className="font-mono text-slate-800 dark:text-slate-200 font-semibold">
                     {localTimeStr} ({session.localOpenHour}:00-{session.localCloseHour}:00)
                   </span>
                 </div>
@@ -328,31 +330,31 @@ export function MarketSessionsClock() {
                 {/* Progress Bar (if open) or Countdown (if closed) */}
                 {isOpen ? (
                   <div className="space-y-1 pt-1">
-                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
                       <span>Progres: {Math.round(progress)}%</span>
-                      <span className="text-emerald-400 font-mono font-bold">Tutup dlm: {timeRemainingStr}</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">Tutup dlm: {timeRemainingStr}</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60 px-1">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-800/60 px-1">
                     <span>Buka dalam:</span>
-                    <span className="font-mono font-bold text-emerald-400">{timeUntilOpenStr}</span>
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{timeUntilOpenStr}</span>
                   </div>
                 )}
               </div>
 
               {/* Major Pairs Tag */}
-              <div className="pt-2 border-t border-slate-800/60 flex flex-wrap gap-1">
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 flex flex-wrap gap-1">
                 {session.pairs.map((pair) => (
                   <span
                     key={pair}
-                    className="text-[9px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-slate-300"
+                    className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-slate-700 dark:text-slate-300 transition-colors"
                   >
                     {pair}
                   </span>

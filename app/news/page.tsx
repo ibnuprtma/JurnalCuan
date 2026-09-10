@@ -159,7 +159,7 @@ export default function NewsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-extrabold text-white tracking-tight">
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Kalender Berita Ekonomi (Forex Factory Live)
             </h1>
             <Badge variant="profit" className="gap-1 text-[10px] animate-pulse-subtle">
@@ -167,7 +167,7 @@ export default function NewsPage() {
               Live Feed
             </Badge>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Data peristiwa ekonomi global langsung dari Forex Factory dengan konversi otomatis ke Waktu Indonesia Barat (WIB)
           </p>
         </div>

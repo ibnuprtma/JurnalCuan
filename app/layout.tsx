@@ -33,6 +33,7 @@ export const viewport: Viewport = {
 };
 
 import { Toaster } from "sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export default function RootLayout({
   children,
@@ -40,10 +41,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="dark">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-[#080b11] text-slate-100 min-h-screen`}>
-        <AppShell>{children}</AppShell>
-        <Toaster position="top-right" richColors theme="dark" />
+    <html lang="id" suppressHydrationWarning>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-[#080b11] text-slate-100 min-h-screen transition-colors duration-200`}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <AppShell>{children}</AppShell>
+          <Toaster position="top-right" richColors />
+        </ThemeProvider>
       </body>
     </html>
   );

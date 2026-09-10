@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { EditBalanceModal } from "@/components/tools/edit-balance-modal";
+import { ThemeSettingsCard } from "@/components/settings/theme-settings-card";
 
 const ACCOUNT_TYPE_CONFIG: Record<
   string,
@@ -41,25 +42,25 @@ const ACCOUNT_TYPE_CONFIG: Record<
   Demo: {
     label: "Demo",
     icon: <FlaskConical className="h-4 w-4" />,
-    color: "text-yellow-400",
-    border: "border-yellow-500/40",
-    bg: "bg-yellow-500/10",
+    color: "text-amber-600 dark:text-yellow-400",
+    border: "border-amber-300 dark:border-yellow-500/40",
+    bg: "bg-amber-50 dark:bg-yellow-500/10",
     desc: "Akun latihan tanpa risiko uang nyata",
   },
   Real: {
     label: "Real",
     icon: <TrendingUp className="h-4 w-4" />,
-    color: "text-emerald-400",
-    border: "border-emerald-500/40",
-    bg: "bg-emerald-500/10",
+    color: "text-emerald-600 dark:text-emerald-400",
+    border: "border-emerald-300 dark:border-emerald-500/40",
+    bg: "bg-emerald-50 dark:bg-emerald-500/10",
     desc: "Akun live trading dengan uang nyata",
   },
   PropFirm: {
     label: "Prop Firm",
     icon: <Shield className="h-4 w-4" />,
-    color: "text-purple-400",
-    border: "border-purple-500/40",
-    bg: "bg-purple-500/10",
+    color: "text-indigo-600 dark:text-purple-400",
+    border: "border-indigo-300 dark:border-purple-500/40",
+    bg: "bg-indigo-50 dark:bg-purple-500/10",
     desc: "Akun challenge / funded dari prop firm",
   },
 };
@@ -343,6 +344,9 @@ export default function SettingsPage() {
         </Link>
       </div>
 
+      {/* Theme / Appearance Settings Card */}
+      <ThemeSettingsCard />
+
       {/* Profile Settings Card */}
       <div className="p-6 rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl shadow-xl space-y-6">
         <div className="flex items-center gap-3 pb-4 border-b border-slate-800/80">
@@ -397,7 +401,7 @@ export default function SettingsPage() {
               type="submit"
               size="sm"
               disabled={isSavingProfile || !userName.trim()}
-              className="ml-auto bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold gap-1.5"
+              className="ml-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold gap-1.5 shadow-md shadow-emerald-600/20"
             >
               {isSavingProfile ? (
                 <>
@@ -412,22 +416,22 @@ export default function SettingsPage() {
       </div>
 
       {/* Multi-Accounts Manager */}
-      <div id="accounts-section" className="p-6 rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl shadow-xl space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
+      <div id="accounts-section" className="p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 backdrop-blur-xl shadow-xl space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800/80">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <Layers className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Daftar Akun Trading (Multi-Portofolio)</h2>
-              <p className="text-xs text-slate-400">Kelola akun personal, akun prop firm, atau akun demo kamu</p>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Daftar Akun Trading (Multi-Portofolio)</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Kelola akun personal, akun prop firm, atau akun demo kamu</p>
             </div>
           </div>
 
           <Button
             size="sm"
             onClick={() => { setShowAddAccount((p) => !p); setCreateError(null); }}
-            className="gap-1.5 bg-purple-500 hover:bg-purple-400 text-white font-bold"
+            className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-600/20"
           >
             {showAddAccount ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
             {showAddAccount ? "Batal" : "Tambah Akun"}
@@ -684,7 +688,7 @@ export default function SettingsPage() {
             return (
               <div
                 key={account.id}
-                className="p-4 rounded-2xl border border-slate-800 bg-slate-950/60 flex flex-wrap items-center justify-between gap-3"
+                className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 flex flex-wrap items-center justify-between gap-3 shadow-xs transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className={`h-9 w-9 rounded-xl ${cfg.bg} border ${cfg.border} flex items-center justify-center ${cfg.color}`}>
@@ -692,23 +696,23 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-white">{account.name}</h4>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">{account.name}</h4>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
                         {cfg.label}
                       </span>
                       {isFirst && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-300 border border-slate-600/40">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600/40">
                           Default
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      Broker: <span className="text-slate-200 font-mono">{brokerDisplay}</span> • Saldo:{" "}
-                      <strong className="text-emerald-400 font-mono">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Broker: <span className="text-slate-800 dark:text-slate-200 font-mono font-semibold">{brokerDisplay}</span> • Saldo:{" "}
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
                         {formatCurrency(account.currentBalance, account.currency)}
                       </strong>
                       {" • Modal Awal: "}
-                      <strong className="text-slate-300 font-mono">
+                      <strong className="text-slate-700 dark:text-slate-300 font-mono font-semibold">
                         {formatCurrency(account.initialBalance || account.currentBalance || 0, account.currency)}
                       </strong>
                     </div>
@@ -724,12 +728,12 @@ export default function SettingsPage() {
                       setSelectedEditAccountId(account.id);
                       setIsEditBalanceOpen(true);
                     }}
-                    className="h-7 text-xs px-2.5 gap-1.5 border-slate-700 hover:border-emerald-500/50 hover:text-emerald-400 text-slate-300"
+                    className="h-7 text-xs px-2.5 gap-1.5 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400"
                   >
-                    <Pencil className="h-3 w-3 text-emerald-400" />
+                    <Pencil className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                     <span>Ubah Modal Awal</span>
                   </Button>
-                  <Badge variant="outline" className="font-mono text-[10px] gap-1">
+                  <Badge variant="outline" className="font-mono text-[10px] gap-1 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400">
                     <Key className="h-2.5 w-2.5" /> API: <code>jc_{account.id.slice(0, 6)}…</code>
                   </Badge>
                 </div>
