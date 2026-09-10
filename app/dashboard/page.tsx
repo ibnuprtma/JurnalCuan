@@ -380,10 +380,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Trades Box */}
-        <div className="rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl flex flex-col justify-between space-y-4">
+        <div className="rounded-3xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 backdrop-blur-xl p-5 shadow-xs dark:shadow-2xl flex flex-col justify-between space-y-4 transition-colors">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800/80">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <span>Catatan Transaksi Terkini</span>
                 <Badge variant="outline" className="text-[10px] font-mono">
                   {recentTrades.length}
@@ -391,7 +391,7 @@ export default function DashboardPage() {
               </h3>
               <Link
                 href="/trades"
-                className="text-xs font-semibold text-emerald-400 hover:underline flex items-center gap-1"
+                className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
               >
                 Lihat Semua <ArrowRight className="h-3 w-3" />
               </Link>
@@ -399,7 +399,7 @@ export default function DashboardPage() {
 
             <div className="space-y-2 mt-3">
               {recentTrades.length === 0 ? (
-                <div className="py-8 text-center text-slate-500 text-xs rounded-2xl border border-dashed border-slate-800">
+                <div className="py-8 text-center text-slate-500 text-xs rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
                   Belum ada transaksi. Klik &quot;Catat Transaksi&quot; untuk memulai.
                 </div>
               ) : (
@@ -423,25 +423,25 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={trade.id}
-                      className="p-3 rounded-2xl border border-slate-800/60 bg-slate-950/50 flex items-center justify-between hover:border-slate-700 transition-colors"
+                      className="p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/60 bg-slate-50/70 dark:bg-slate-950/50 flex items-center justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
                         <div
                           className={cn(
                             "h-8 w-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0",
                             isWin
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                              : "bg-rose-500/10 text-rose-400 border border-rose-500/30"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                              : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30"
                           )}
                         >
                           {isWin ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-semibold text-xs text-white truncate">{notes}</div>
-                          <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                          <div className="font-semibold text-xs text-slate-900 dark:text-white truncate">{notes}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1.5">
                             <span>{timeFormatted}</span>
                             {isAllSelected && tradeAccount && (
-                              <span className="text-[9px] px-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
                                 {tradeAccount.name} ({accType})
                               </span>
                             )}
@@ -453,7 +453,7 @@ export default function DashboardPage() {
                         <span
                           className={cn(
                             "font-bold text-xs font-mono",
-                            isWin ? "text-emerald-400" : isLoss ? "text-rose-400" : "text-slate-400"
+                            isWin ? "text-emerald-600 dark:text-emerald-400" : isLoss ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"
                           )}
                         >
                           {formatSignedCurrency(trade.netPnL, tradeCurrency)}
@@ -470,7 +470,7 @@ export default function DashboardPage() {
             variant="outline"
             size="sm"
             onClick={openNewTradeModal}
-            className="w-full text-xs gap-1.5 border-dashed border-slate-700 hover:border-emerald-500/50 text-slate-300"
+            className="w-full text-xs gap-1.5 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500/50 text-slate-700 dark:text-slate-300 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/60"
           >
             <Plus className="h-3 w-3" />
             <span>Tambah Transaksi Baru</span>

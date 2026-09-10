@@ -231,9 +231,9 @@ export default function WelcomeLandingPage() {
                 <ArrowRight className="h-5 w-5" />
               </Link>
               <div className="text-xs text-slate-500 flex items-center justify-center gap-2">
-                <span>Login sebagai <strong className="text-slate-300">{authUser.email}</strong></span>
+                <span>Login sebagai <strong className="text-slate-800 dark:text-slate-300">{authUser.email}</strong></span>
                 <span>•</span>
-                <a href="/auth/logout" className="text-emerald-400 hover:underline">Ganti Akun</a>
+                <a href="/auth/logout" className="text-emerald-600 dark:text-emerald-400 hover:underline">Ganti Akun</a>
               </div>
             </div>
           ) : (
@@ -241,7 +241,7 @@ export default function WelcomeLandingPage() {
             <div className="w-full space-y-3">
               <a
                 href="/auth/login?returnTo=/dashboard"
-                className="relative group w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 bg-[length:200%_auto] hover:bg-[position:right_center] text-slate-950 font-black text-base flex items-center justify-center gap-3 shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                className="relative group w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 bg-[length:200%_auto] hover:bg-[position:right_center] text-white font-bold text-base flex items-center justify-center gap-3 shadow-xl shadow-emerald-600/25 hover:shadow-emerald-600/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
               >
                 <LogIn className="h-5 w-5 flex-shrink-0" />
                 <span>Masuk Sekarang</span>
@@ -249,7 +249,7 @@ export default function WelcomeLandingPage() {
               </a>
 
               <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
-                <Lock className="h-3.5 w-3.5 text-emerald-400" />
+                <Lock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Autentikasi Aman & Cepat via Auth0</span>
               </p>
             </div>
@@ -262,7 +262,7 @@ export default function WelcomeLandingPage() {
       {/* ========================================================================= */}
       {/* 5. MINIMALIST FOOTER */}
       {/* ========================================================================= */}
-      <footer className="relative z-20 w-full max-w-7xl mx-auto px-6 py-6 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-900">
+      <footer className="relative z-20 w-full max-w-7xl mx-auto px-6 py-6 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-200 dark:border-slate-900">
         <p>© 2026 Jurnal Cuan. Disiplin adalah kunci cuan konsisten.</p>
         <div className="flex items-center gap-4 text-[11px]">
           <span className="text-emerald-400 flex items-center gap-1">
