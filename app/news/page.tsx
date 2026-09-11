@@ -183,9 +183,9 @@ export default function NewsPage() {
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
-            className="gap-1.5 text-xs bg-slate-900 border-slate-800 hover:border-emerald-500/40 text-slate-200"
+            className="gap-1.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-emerald-500/40 text-slate-700 dark:text-slate-200 shadow-sm"
           >
-            <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin text-emerald-400")} />
+            <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin text-emerald-600 dark:text-emerald-400")} />
             <span>{isRefreshing ? "Menyinkronkan..." : "Perbarui Data"}</span>
           </Button>
         </div>
@@ -193,16 +193,16 @@ export default function NewsPage() {
 
       {/* Rate Limit / Error Warning Banner */}
       {errorMessage && (
-        <div className="p-6 rounded-3xl bg-amber-950/30 border border-amber-500/30 backdrop-blur-xl space-y-3 shadow-xl">
+        <div className="p-6 rounded-3xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/30 backdrop-blur-xl space-y-3 shadow-sm dark:shadow-xl">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+            <div className="h-10 w-10 rounded-2xl bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <Clock className="h-5 w-5 animate-pulse" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-amber-200">
+              <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200">
                 Peringatan Batas Akses Server (Rate Limit)
               </h3>
-              <p className="text-xs text-slate-300 mt-0.5">{errorMessage}</p>
+              <p className="text-xs text-amber-800 dark:text-slate-300 mt-0.5">{errorMessage}</p>
             </div>
           </div>
 
@@ -216,7 +216,7 @@ export default function NewsPage() {
               <RefreshCw className={cn("h-3.5 w-3.5", (isLoading || isRefreshing) && "animate-spin")} />
               <span>Coba Segarkan Sekarang</span>
             </Button>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
               Disarankan menunggu 5 menit agar kuota permintaan di-reset oleh Forex Factory.
             </span>
           </div>
@@ -225,16 +225,16 @@ export default function NewsPage() {
 
       {/* High Impact Alert Highlight (Only if data loaded) */}
       {highImpactCount > 0 && (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950/40 via-slate-900/80 to-slate-900 border border-rose-500/30 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+        <div className="p-4 rounded-2xl bg-rose-50/90 dark:bg-gradient-to-r dark:from-rose-950/40 dark:via-slate-900/80 dark:to-slate-900 border border-rose-200 dark:border-rose-500/30 flex flex-wrap items-center justify-between gap-3 shadow-sm dark:shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
+            <div className="h-9 w-9 rounded-xl bg-rose-100 dark:bg-rose-500/20 border border-rose-300 dark:border-rose-500/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
               <AlertTriangle className="h-5 w-5 animate-pulse" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-rose-200">
+              <h4 className="text-xs font-bold text-rose-900 dark:text-rose-200">
                 Peringatan Volatilitas Tinggi ({highImpactCount} Berita High Impact Terdeteksi)
               </h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-rose-800/80 dark:text-slate-400 mt-0.5">
                 Hindari entry tanpa Stop Loss ketat saat rilis berita bertanda merah (🔴 High Impact) karena potensi lonjakan spread dan slippage.
               </p>
             </div>
@@ -246,7 +246,7 @@ export default function NewsPage() {
               handleImpactChange("HIGH");
               handleCurrencyChange("ALL");
             }}
-            className="text-xs border-rose-500/40 text-rose-300 hover:bg-rose-500/10"
+            className="text-xs bg-white dark:bg-transparent border-rose-300 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/10 shadow-sm"
           >
             <Flame className="h-3.5 w-3.5 mr-1" />
             Lihat Berita High Impact
@@ -255,7 +255,7 @@ export default function NewsPage() {
       )}
 
       {/* Filter Toolbar */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-slate-900/70 border border-slate-800/80 backdrop-blur-xl shadow-xl space-y-4">
+      <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 backdrop-blur-xl shadow-sm dark:shadow-xl space-y-4">
         {/* Top Controls: Search & Dropdowns */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Search Input */}
@@ -265,7 +265,7 @@ export default function NewsPage() {
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Cari event (CPI, NFP, Fed, PMI)..."
-              className="pl-9 text-xs"
+              className="pl-9 text-xs bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
             />
           </div>
 
@@ -274,7 +274,7 @@ export default function NewsPage() {
             <select
               value={selectedImpact}
               onChange={(e) => handleImpactChange(e.target.value)}
-              className="h-10 rounded-xl border border-slate-800 bg-slate-900 px-3 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              className="h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 shadow-sm dark:shadow-none"
             >
               {IMPACT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -290,10 +290,10 @@ export default function NewsPage() {
               size="sm"
               onClick={handleTodayToggle}
               className={cn(
-                "h-10 text-xs gap-1.5",
+                "h-10 text-xs gap-1.5 transition-all",
                 onlyToday
-                  ? "bg-emerald-500 text-slate-950 font-bold hover:bg-emerald-400"
-                  : "bg-slate-900 border-slate-800 text-slate-300"
+                  ? "bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 font-bold hover:bg-emerald-700 dark:hover:bg-emerald-400 shadow-sm"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
               <CalendarDays className="h-3.5 w-3.5" />
@@ -303,9 +303,9 @@ export default function NewsPage() {
         </div>
 
         {/* Currency Filter Tabs / Pills */}
-        <div className="space-y-1.5 pt-2 border-t border-slate-800/60">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
-            <Globe2 className="h-3.5 w-3.5 text-slate-400" />
+        <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-800/60">
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+            <Globe2 className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
             <span>Filter Mata Uang:</span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -319,8 +319,8 @@ export default function NewsPage() {
                   className={cn(
                     "px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer",
                     isSelected
-                      ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 scale-105"
-                      : "bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700/60"
+                      ? "bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 shadow-md shadow-emerald-500/25 scale-105"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:text-slate-300 dark:hover:text-white dark:border-slate-700/60"
                   )}
                 >
                   {curr}
@@ -332,11 +332,11 @@ export default function NewsPage() {
       </div>
 
       {/* Live News Table */}
-      <div className="rounded-3xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-xl overflow-hidden shadow-2xl">
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 backdrop-blur-xl overflow-hidden shadow-sm dark:shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-slate-800/90 bg-slate-950/80 text-slate-400 uppercase font-bold text-[10px] tracking-wider">
+              <tr className="border-b border-slate-200 dark:border-slate-800/90 bg-slate-50/90 dark:bg-slate-950/80 text-slate-600 dark:text-slate-400 uppercase font-bold text-[10px] tracking-wider">
                 <th className="p-4 whitespace-nowrap">Waktu Rilis (WIB)</th>
                 <th className="p-4">Mata Uang</th>
                 <th className="p-4">Dampak (Impact)</th>
@@ -346,11 +346,11 @@ export default function NewsPage() {
                 <th className="p-4">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-slate-400 space-y-2">
-                    <RefreshCw className="h-6 w-6 animate-spin mx-auto text-emerald-400" />
+                  <td colSpan={7} className="p-12 text-center text-slate-500 dark:text-slate-400 space-y-2">
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto text-emerald-600 dark:text-emerald-400" />
                     <div>Menghubungkan ke live stream Forex Factory...</div>
                   </td>
                 </tr>
@@ -398,8 +398,8 @@ export default function NewsPage() {
                             className={cn(
                               "px-2.5 py-1 rounded-lg text-[10px] font-bold inline-flex items-center gap-1",
                               isSoon
-                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse"
-                                : "bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                                ? "bg-amber-50 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 animate-pulse"
+                                : "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/20"
                             )}
                           >
                             {isSoon ? "⏳ Segera Rilis" : "⏳ Mendatang"}
@@ -407,7 +407,7 @@ export default function NewsPage() {
                         );
                       } else {
                         statusBadge = (
-                          <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300/90 border border-emerald-500/20 text-[10px] font-bold inline-flex items-center gap-1">
+                          <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20 text-[10px] font-bold inline-flex items-center gap-1">
                             ✓ Selesai Rilis
                           </span>
                         );
@@ -421,19 +421,19 @@ export default function NewsPage() {
                     <tr
                       key={item.id}
                       className={cn(
-                        "hover:bg-slate-800/40 transition-colors font-mono group",
-                        item.impact === "HIGH" && "bg-rose-950/5"
+                        "hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors font-mono group",
+                        item.impact === "HIGH" && "bg-rose-50/30 dark:bg-rose-950/5"
                       )}
                     >
                       {/* Date & Time (WIB) */}
                       <td className="p-4 whitespace-nowrap">
-                        <div className="font-bold text-slate-200">{timeFormatted || "All Day"}</div>
-                        <div className="text-[10px] text-slate-400 font-sans">{dateFormatted}</div>
+                        <div className="font-bold text-slate-900 dark:text-slate-200">{timeFormatted || "All Day"}</div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans">{dateFormatted}</div>
                       </td>
 
                       {/* Currency Flag / Badge */}
                       <td className="p-4 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-white font-extrabold border border-slate-700 text-xs">
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white font-extrabold border border-slate-200 dark:border-slate-700 text-xs">
                           {item.currency}
                         </span>
                       </td>
@@ -441,45 +441,45 @@ export default function NewsPage() {
                       {/* Impact Badge */}
                       <td className="p-4 whitespace-nowrap">
                         {item.impact === "HIGH" ? (
-                          <span className="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold inline-flex items-center gap-1 shadow-sm shadow-rose-500/20">
+                          <span className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40 text-[10px] font-bold inline-flex items-center gap-1 shadow-sm shadow-rose-500/10">
                             🔴 High
                           </span>
                         ) : item.impact === "MEDIUM" ? (
-                          <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold inline-flex items-center gap-1">
+                          <span className="px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-amber-500/20 text-orange-700 dark:text-amber-300 border border-orange-200 dark:border-amber-500/40 text-[10px] font-bold inline-flex items-center gap-1">
                             🟠 Medium
                           </span>
                         ) : item.impact === "LOW" ? (
-                          <span className="px-2.5 py-1 rounded-lg bg-yellow-500/10 text-yellow-300/80 border border-yellow-500/20 text-[10px] font-bold inline-flex items-center gap-1">
+                          <span className="px-2.5 py-1 rounded-lg bg-amber-50/80 dark:bg-yellow-500/10 text-amber-700 dark:text-yellow-300/90 border border-amber-200/80 dark:border-yellow-500/20 text-[10px] font-bold inline-flex items-center gap-1">
                             🟡 Low
                           </span>
                         ) : (
-                          <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 text-[10px] font-bold">
+                          <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[10px] font-bold">
                             ⚪ Holiday
                           </span>
                         )}
                       </td>
 
                       {/* Title / Event Name */}
-                      <td className="p-4 font-sans font-semibold text-slate-100 min-w-[200px]">
-                        <div className="text-xs group-hover:text-emerald-400 transition-colors">
+                      <td className="p-4 font-sans font-semibold text-slate-900 dark:text-slate-100 min-w-[200px]">
+                        <div className="text-xs group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                           {item.title}
                         </div>
                       </td>
 
                       {/* Forecast */}
-                      <td className="p-4 whitespace-nowrap text-slate-300 font-medium">
+                      <td className="p-4 whitespace-nowrap text-slate-700 dark:text-slate-300 font-medium">
                         {item.forecast}
                       </td>
 
                       {/* Previous */}
-                      <td className="p-4 whitespace-nowrap text-slate-400">
+                      <td className="p-4 whitespace-nowrap text-slate-500 dark:text-slate-400">
                         {item.previous}
                       </td>
 
                       {/* Status Badge */}
                       <td className="p-4 whitespace-nowrap">
                         {statusBadge || (
-                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold">
                             —
                           </span>
                         )}
@@ -493,28 +493,28 @@ export default function NewsPage() {
         </div>
 
         {/* Pagination & Footer Bar */}
-        <div className="p-4 border-t border-slate-800/80 bg-slate-950/60 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400 font-sans">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/60 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600 dark:text-slate-400 font-sans">
           {/* Info range */}
           <div className="flex items-center gap-3">
             <div>
               Menampilkan{" "}
-              <strong>
+              <strong className="text-slate-900 dark:text-slate-200">
                 {filteredEvents.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–
                 {Math.min(currentPage * pageSize, filteredEvents.length)}
               </strong>{" "}
-              dari total <strong>{filteredEvents.length}</strong> peristiwa
+              dari total <strong className="text-slate-900 dark:text-slate-200">{filteredEvents.length}</strong> peristiwa
             </div>
 
             {/* Page Size Selector */}
-            <div className="hidden sm:flex items-center gap-1.5 pl-3 border-l border-slate-800">
-              <span className="text-[11px] text-slate-500">Tampilkan:</span>
+            <div className="hidden sm:flex items-center gap-1.5 pl-3 border-l border-slate-200 dark:border-slate-800">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">Tampilkan:</span>
               <select
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="h-7 rounded-lg border border-slate-800 bg-slate-900 px-2 text-[11px] text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                className="h-7 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2 text-[11px] text-slate-800 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
               >
                 {PAGE_SIZE_OPTIONS.map((size) => (
                   <option key={size} value={size}>
@@ -533,11 +533,11 @@ export default function NewsPage() {
                 size="sm"
                 onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                 disabled={currentPage === 1}
-                className="h-8 px-2.5 text-xs bg-slate-900 border-slate-800 text-slate-300 hover:text-white"
+                className="h-8 px-2.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white shadow-sm"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" /> Prev
               </Button>
-              <span className="font-mono text-slate-300 px-1 text-xs">
+              <span className="font-mono text-slate-700 dark:text-slate-300 px-1 text-xs">
                 Halaman {currentPage} dari {totalPages}
               </span>
               <Button
@@ -545,7 +545,7 @@ export default function NewsPage() {
                 size="sm"
                 onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                 disabled={currentPage >= totalPages}
-                className="h-8 px-2.5 text-xs bg-slate-900 border-slate-800 text-slate-300 hover:text-white"
+                className="h-8 px-2.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white shadow-sm"
               >
                 Next <ChevronRight className="h-4 w-4 ml-1" />
               </Button>

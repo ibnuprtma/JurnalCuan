@@ -401,3 +401,74 @@ html:not(.dark)::-webkit-scrollbar-thumb:hover,
 html:not(.dark) ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* =========================================================
+   CUAN CARD EXPORT ISOLATION
+   Preserve sleek dark prestige trading card design in all modes
+   ========================================================= */
+html:not(.dark) .cuan-card-canvas,
+.cuan-card-canvas {
+  background: linear-gradient(180deg, #0e1628 0%, #090d18 50%, #05070d 100%) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+}
+
+html:not(.dark) .cuan-card-canvas [class*="text-white"],
+html:not(.dark) .cuan-card-canvas .cuan-card-title,
+html:not(.dark) .cuan-card-canvas .cuan-card-val,
+.cuan-card-canvas [class*="text-white"],
+.cuan-card-canvas .cuan-card-title,
+.cuan-card-canvas .cuan-card-val {
+  color: #ffffff !important;
+}
+
+html:not(.dark) .cuan-card-canvas [class*="text-slate-400"],
+html:not(.dark) .cuan-card-canvas .cuan-card-subtext,
+.cuan-card-canvas [class*="text-slate-400"],
+.cuan-card-canvas .cuan-card-subtext {
+  color: #94a3b8 !important;
+}
+
+html:not(.dark) .cuan-card-canvas [class*="text-slate-200"],
+html:not(.dark) .cuan-card-canvas .cuan-card-pill-text,
+.cuan-card-canvas [class*="text-slate-200"],
+.cuan-card-canvas .cuan-card-pill-text {
+  color: #e2e8f0 !important;
+}
+
+html:not(.dark) .cuan-card-canvas [class*="bg-slate-900"],
+html:not(.dark) .cuan-card-canvas .cuan-card-panel,
+.cuan-card-canvas [class*="bg-slate-900"],
+.cuan-card-canvas .cuan-card-panel {
+  background-color: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(51, 65, 85, 0.8) !important;
+}
+
+html:not(.dark) .cuan-card-canvas span[class*="bg-slate-900"],
+html:not(.dark) .cuan-card-canvas .cuan-card-pill,
+.cuan-card-canvas span[class*="bg-slate-900"],
+.cuan-card-canvas .cuan-card-pill {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(51, 65, 85, 0.8) !important;
+}
+
+html:not(.dark) .cuan-card-canvas .text-emerald-400,
+html:not(.dark) .cuan-card-canvas .cuan-card-profit,
+.cuan-card-canvas .text-emerald-400,
+.cuan-card-canvas .cuan-card-profit {
+  color: #34d399 !important;
+}
+
+html:not(.dark) .cuan-card-canvas .text-rose-400,
+html:not(.dark) .cuan-card-canvas .cuan-card-loss,
+.cuan-card-canvas .text-rose-400,
+.cuan-card-canvas .cuan-card-loss {
+  color: #fb7185 !important;
+}
+
+html:not(.dark) .cuan-card-canvas .bg-emerald-500,
+.cuan-card-canvas .bg-emerald-500 {
+  background-color: #10b981 !important;
+  color: #020617 !important;
+}

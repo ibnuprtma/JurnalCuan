@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription, DialogCloseButton, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatSignedCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatSignedCurrency } from "@/lib/utils";
 import { SampleTrade } from "@/lib/sample-data";
 import { useAppShell } from "@/components/layout/app-shell";
 import { Download, Sparkles, Copy, Check, Loader2 } from "lucide-react";
@@ -82,11 +82,13 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogCloseButton onClose={onClose} />
       <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-emerald-400" />
+        <DialogTitle>
+          <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span>Bagikan Cuan Card</span>
         </DialogTitle>
-        <DialogDescription>Kartu visual estetik siap dibagikan ke Instagram Story, X, atau Discord</DialogDescription>
+        <DialogDescription>
+          Kartu visual estetik siap dibagikan ke Instagram Story, X, atau Discord
+        </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4">
@@ -97,7 +99,12 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
             variant={aspectRatio === "story" ? "default" : "outline"}
             size="sm"
             onClick={() => setAspectRatio("story")}
-            className="text-xs"
+            className={cn(
+              "text-xs transition-all",
+              aspectRatio === "story"
+                ? "bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 font-bold hover:bg-emerald-700 dark:hover:bg-emerald-400 shadow-sm"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            )}
           >
             Instagram Story (9:16)
           </Button>
@@ -106,7 +113,12 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
             variant={aspectRatio === "square" ? "default" : "outline"}
             size="sm"
             onClick={() => setAspectRatio("square")}
-            className="text-xs"
+            className={cn(
+              "text-xs transition-all",
+              aspectRatio === "square"
+                ? "bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 font-bold hover:bg-emerald-700 dark:hover:bg-emerald-400 shadow-sm"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            )}
           >
             Square / Feed (1:1)
           </Button>
@@ -116,38 +128,56 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
         <div className="flex justify-center py-2">
           <div
             ref={cardRef}
-            className={`w-full max-w-sm rounded-3xl p-6 bg-gradient-to-b from-[#0e1628] via-[#090d18] to-[#05070d] border-2 border-emerald-500/40 shadow-2xl relative overflow-hidden flex flex-col justify-between ${
+            className={cn(
+              "cuan-card-canvas w-full max-w-sm rounded-3xl p-6 border-2 border-emerald-500/40 shadow-2xl relative overflow-hidden flex flex-col justify-between select-none",
               aspectRatio === "story" ? "min-h-[460px]" : "min-h-[360px]"
-            }`}
+            )}
+            style={{
+              background: "linear-gradient(180deg, #0e1628 0%, #090d18 50%, #05070d 100%)",
+              borderColor: "rgba(16, 185, 129, 0.4)",
+              color: "#ffffff",
+            }}
           >
-            {/* Background Neon Glows */}
-            <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/15 rounded-full blur-2xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-36 h-36 bg-teal-500/10 rounded-full blur-2xl pointer-events-none" />
-
             {/* Top Brand Header */}
             <div className="relative z-10 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-emerald-500 flex items-center justify-center text-slate-950 font-black text-xs">
+                <div
+                  className="h-7 w-7 rounded-lg flex items-center justify-center font-black text-xs shadow-md shadow-emerald-500/20"
+                  style={{ backgroundColor: "#10b981", color: "#020617" }}
+                >
                   JC
                 </div>
-                <span className="font-extrabold text-sm tracking-tight text-white">
-                  JURNAL<span className="text-emerald-400">CUAN</span>
+                <span
+                  className="cuan-card-title font-extrabold text-sm tracking-tight"
+                  style={{ color: "#ffffff" }}
+                >
+                  JURNAL<span className="cuan-card-profit" style={{ color: "#34d399" }}>CUAN</span>
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">{dateFormatted}</span>
+              <span
+                className="cuan-card-subtext text-[11px] font-mono font-medium"
+                style={{ color: "#cbd5e1" }}
+              >
+                {dateFormatted}
+              </span>
             </div>
 
             {/* Middle Main P&L Callout */}
             <div className="relative z-10 text-center my-auto py-6 space-y-2">
-              <div className="text-[11px] uppercase font-bold text-slate-400 tracking-widest">
+              <div
+                className="cuan-card-subtext text-[11px] uppercase font-bold tracking-widest"
+                style={{ color: "#94a3b8" }}
+              >
                 Daily Performance
               </div>
 
               {!isMultiCurrency ? (
                 <div
-                  className={`text-4xl font-extrabold font-mono tracking-tight drop-shadow-lg ${
-                    netPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-                  }`}
+                  className={cn(
+                    "text-4xl font-extrabold font-mono tracking-tight drop-shadow-lg",
+                    netPnL >= 0 ? "cuan-card-profit" : "cuan-card-loss"
+                  )}
+                  style={{ color: netPnL >= 0 ? "#34d399" : "#fb7185" }}
                 >
                   {formatSignedCurrency(netPnL, currency)}
                 </div>
@@ -162,11 +192,15 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
 
                     return (
                       <div key={curr} className="flex items-center justify-center gap-2">
-                        <span className="text-xs text-slate-400 font-bold font-mono">{curr}:</span>
                         <span
-                          className={`text-2xl font-extrabold font-mono ${
-                            currPnL >= 0 ? "text-emerald-400" : "text-rose-400"
-                          }`}
+                          className="cuan-card-subtext text-xs font-bold font-mono"
+                          style={{ color: "#94a3b8" }}
+                        >
+                          {curr}:
+                        </span>
+                        <span
+                          className="text-2xl font-extrabold font-mono"
+                          style={{ color: currPnL >= 0 ? "#34d399" : "#fb7185" }}
                         >
                           {formatSignedCurrency(currPnL, curr)}
                         </span>
@@ -176,25 +210,50 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
                 </div>
               )}
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-xs text-slate-200">
-                <span className="text-emerald-400 font-bold font-mono">+{winCount} Cuan</span>
-                <span>•</span>
-                <span className="text-rose-400 font-bold font-mono">-{trades.length - winCount} Boncos</span>
-                <span>•</span>
-                <span>{trades.length} Catatan</span>
+              <div
+                className="cuan-card-pill inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs"
+                style={{
+                  backgroundColor: "rgba(15, 23, 42, 0.9)",
+                  borderColor: "rgba(51, 65, 85, 0.8)",
+                  color: "#e2e8f0",
+                }}
+              >
+                <span className="cuan-card-profit font-bold font-mono" style={{ color: "#34d399" }}>
+                  +{winCount} Cuan
+                </span>
+                <span style={{ color: "#64748b" }}>•</span>
+                <span className="cuan-card-loss font-bold font-mono" style={{ color: "#fb7185" }}>
+                  -{trades.length - winCount} Boncos
+                </span>
+                <span style={{ color: "#64748b" }}>•</span>
+                <span className="cuan-card-pill-text" style={{ color: "#e2e8f0" }}>
+                  {trades.length} Catatan
+                </span>
               </div>
             </div>
 
             {/* Bottom Card Footer */}
-            <div className="relative z-10 p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-md space-y-1.5">
+            <div
+              className="cuan-card-panel relative z-10 p-3.5 rounded-2xl border backdrop-blur-md space-y-1.5 shadow-lg"
+              style={{
+                backgroundColor: "rgba(15, 23, 42, 0.85)",
+                borderColor: "rgba(51, 65, 85, 0.8)",
+              }}
+            >
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">Akun:</span>
-                <span className="font-bold text-white font-mono">{accountName}</span>
+                <span className="cuan-card-subtext" style={{ color: "#94a3b8" }}>
+                  Akun:
+                </span>
+                <span className="cuan-card-val font-bold font-mono" style={{ color: "#ffffff" }}>
+                  {accountName}
+                </span>
               </div>
               {topTrade && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Paling Cuan:</span>
-                  <span className="font-bold text-emerald-400 font-mono">
+                  <span className="cuan-card-subtext" style={{ color: "#94a3b8" }}>
+                    Paling Cuan:
+                  </span>
+                  <span className="cuan-card-profit font-bold font-mono" style={{ color: "#34d399" }}>
                     {topTrade.notes || topTrade.pair} ({formatSignedCurrency(topTrade.netPnL, topTradeCurrency)})
                   </span>
                 </div>
@@ -204,15 +263,20 @@ export function CuanCardModal({ isOpen, onClose, trades, accountName = "Personal
         </div>
       </div>
 
-      <DialogFooter className="flex items-center justify-between sm:justify-between">
-        <Button variant="outline" size="sm" onClick={handleCopyLink} className="gap-1.5 text-xs">
-          {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+      <DialogFooter className="flex items-center justify-between sm:justify-between gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCopyLink}
+          className="gap-1.5 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm"
+        >
+          {copied ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="h-4 w-4" />}
           <span>{copied ? "Tersalin!" : "Salin Link"}</span>
         </Button>
         <Button
           onClick={handleDownload}
           disabled={isDownloading}
-          className="gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold"
+          className="gap-1.5 text-xs bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold shadow-md shadow-emerald-500/20"
         >
           {isDownloading ? (
             <Loader2 className="h-4 w-4 animate-spin stroke-[2.5]" />
