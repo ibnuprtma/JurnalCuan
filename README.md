@@ -207,6 +207,7 @@ jurnal-cuan/
 ├── public/                    # Static Assets
 │   ├── JurnalCuanSync.mq5     # MetaTrader 5 Expert Advisor sync script
 │   ├── manifest.json          # PWA Web App Manifest
+│   ├── sw.js                  # PWA Service Worker (Offline caching & asset precache)
 │   ├── favicon.png            # Favicon
 │   ├── icon-192.png           # PWA icon 192x192
 │   └── icon-512.png           # PWA icon 512x512

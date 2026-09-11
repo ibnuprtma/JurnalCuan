@@ -1,10 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Vercel memiliki pipeline serverless sendiri, jangan gunakan 'standalone' di Vercel
-  // agar tidak memicu error ENOENT next-server.js.nft.json.
-  // 'standalone' tetap aktif otomatis untuk build Docker / Self-hosted.
-  ...(process.env.VERCEL ? {} : { output: "standalone" }),
+  // Output 'standalone' hanya diaktifkan saat build Docker (BUILD_STANDALONE=1).
+  // Pada environment lokal (npm run start) dan Vercel, menggunakan output standar
+  // agar 'next start' dan deployment Vercel berjalan normal tanpa error.
+  ...(process.env.BUILD_STANDALONE === "1" ? { output: "standalone" } : {}),
   reactStrictMode: true,
   serverExternalPackages: ["@prisma/client", "pg"],
   images: {

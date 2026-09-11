@@ -34,6 +34,7 @@ export const viewport: Viewport = {
 
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { PwaRegister } from "@/components/pwa-register";
 
 export default function RootLayout({
   children,
@@ -44,6 +45,7 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning>
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-[#080b11] text-slate-100 min-h-screen transition-colors duration-200`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <PwaRegister />
           <AppShell>{children}</AppShell>
           <Toaster position="top-right" richColors />
         </ThemeProvider>
