@@ -14,14 +14,18 @@ out
 .env
 .env*.local
 
-# Documentation & Spec files
+# Documentation & Spec files (not needed in production image)
 *.md
 PRD_JURNAL_CUAN.md
+
+# Agent & IDE configuration
+.agents
+.vscode
+.idea
 
 # Local database volumes
 postgres_data
 docker-data
 
-# IDE
-.vscode
-.idea
+# Temporary & generated files
+tsconfig.tsbuildinfo

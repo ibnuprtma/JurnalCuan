@@ -1,6 +1,8 @@
 # ==============================================================================
 # JURNAL CUAN - MULTI-STAGE PRODUCTION DOCKERFILE
 # ==============================================================================
+# Tech: Next.js 16 (Standalone) + Prisma 7 + PostgreSQL
+# Build: docker compose up -d --build
 
 # ------------------------------------------------------------------------------
 # 1. Dependencies Stage
@@ -12,6 +14,7 @@ WORKDIR /app
 # Copy package manifests & prisma schema for dependency caching
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
 
 # Install dependencies cleanly
 RUN npm ci
@@ -29,7 +32,7 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Set dummy env vars for Next.js static build pass if needed
+# Set env vars for Next.js build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
@@ -53,19 +56,24 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy built assets and standalone server
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 
 # Copy standalone Next.js server & static chunks
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+# Set permissions for Next.js prerender cache and symlink prisma binary
+RUN mkdir -p .next/cache && chown -R nextjs:nodejs .next && \
+    ln -sf /app/node_modules/prisma/build/index.js /usr/local/bin/prisma
+
+# Copy entrypoint script and ensure Unix line endings & executable permissions
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
+RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
 USER nextjs
 
